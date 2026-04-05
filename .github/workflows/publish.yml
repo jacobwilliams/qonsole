@@ -21,9 +21,9 @@ jobs:
         with:
           pixi-version: v0.61.0
           cache: true
-          manifest-path: pixi.toml
+          manifest-path: pyproject.toml
       - name: Build package
         run: |
-          pixi run --manifest-path ./pixi.toml hatch build
+          pixi run --manifest-path ./pyproject.toml hatch build
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
