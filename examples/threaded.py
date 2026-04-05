@@ -52,7 +52,6 @@ if __name__ == "__main__":
 
     # Create console
     console = PythonConsole(
-        shell_cmd_prefix=True,
         welcome_message=welcome_msg,
         pygments_style=INITIAL_STYLE,
         inprompt=">>>",

@@ -54,7 +54,6 @@ class BaseConsole(QFrame):
     def __init__(
         self,
         parent: Optional["QFrame"] = None,
-        shell_cmd_prefix: bool = True,
         inprompt: Optional[str] = None,
         outprompt: Optional[str] = None,
         welcome_message: Optional[str] = None,
@@ -64,8 +63,6 @@ class BaseConsole(QFrame):
 
         Args:
             parent: Parent widget. Defaults to None.
-            shell_cmd_prefix: If True, commands starting with ``!`` will be treated
-                as system commands and executed using subprocess. Defaults to True.
             inprompt: Input prompt template. If None, uses 'IN [%d]: ' where %d
                 is the current line number. Defaults to None.
             outprompt: Output prompt template. If None, uses 'OUT[%d]: ' where %d
@@ -94,11 +91,6 @@ class BaseConsole(QFrame):
         layout.setSpacing(0)
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
-
-        if shell_cmd_prefix:
-            self.shell_cmd_prefix = "!"
-        else:
-            self.shell_cmd_prefix = None
 
         # a list of tuples that tracks the prompt text for each line.
         # Each tuple is: (prompt_text, is_output), where:
@@ -743,9 +735,7 @@ class BaseConsole(QFrame):
         """
         self._last_input = source
 
-        SPECIAL_COMMANDS = {"%": self._run_magic_command}
-        if self.shell_cmd_prefix:
-            SPECIAL_COMMANDS[self.shell_cmd_prefix] = self._run_system_command
+        SPECIAL_COMMANDS = {"%": self._run_magic_command, "!": self._run_system_command}
         s = source.strip()
 
         if len(s) > 0 and s[0] in SPECIAL_COMMANDS:
@@ -964,7 +954,6 @@ class PythonConsole(BaseConsole):
         self,
         parent: Optional["QFrame"] = None,
         locals: Optional[dict[str, Any]] = None,
-        shell_cmd_prefix: bool = True,
         inprompt: Optional[str] = None,
         outprompt: Optional[str] = None,
         welcome_message: Optional[str] = None,
@@ -976,17 +965,15 @@ class PythonConsole(BaseConsole):
             parent: Parent widget. Defaults to None.
             locals: Dictionary of local variables for the interpreter namespace.
                 Defaults to None.
-            shell_cmd_prefix: If True, enable shell commands with ! prefix.
-                Defaults to True.
             inprompt: Input prompt template. Defaults to None.
             outprompt: Output prompt template. Defaults to None.
-            welcome_message: Welcome message to display at startup. Defaults to None.
+            welcome_message: Welcome message to display at startup.
+                Defaults to None.
             pygments_style: Name of Pygments style (e.g., 'monokai').
                 If None, uses 'default' style. Defaults to None.
         """
         super().__init__(
             parent,
-            shell_cmd_prefix=shell_cmd_prefix,
             inprompt=inprompt,
             outprompt=outprompt,
             welcome_message=welcome_message,

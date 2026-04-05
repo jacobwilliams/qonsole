@@ -16,18 +16,18 @@ the main thread due to the GIL. See the ``examples`` directory for more
 examples.
 
 ```python
-    import sys
-    from threading import Thread
-    from PyQt5.QtWidgets import QApplication
+import sys
+from threading import Thread
+from PyQt5.QtWidgets import QApplication
 
-    from qonsole.console import PythonConsole
+from qonsole.console import PythonConsole
 
-    app = QApplication([])
-    console = PythonConsole()
-    console.show()
-    console.eval_in_thread()
+app = QApplication([])
+console = PythonConsole()
+console.show()
+console.eval_in_thread()
 
-    sys.exit(app.exec_())
+sys.exit(app.exec_())
 ```
 
 ## Embedding
@@ -57,7 +57,39 @@ Syntax highlighting is provided by the [https://pygments.org](pygments) library.
 Simply pass the Pygments style string to the ``PythonConsole`` constructer like so:
 
 ```python
-    console = PythonConsole(pygments_style='github-dark')
+console = PythonConsole(pygments_style='github-dark')
+```
+
+### Magic commands
+
+Commands that start with `%` are magic commands.
+This features provides IPython-like [magic commands](https://ipython.readthedocs.io/en/stable/interactive/magics.html) such as:
+
+ * `%pwd` -- Print current working directory
+ * `%cd` -- Change directory
+ * `%ls` -- List directory contents
+ * `%who` -- List variable names in the current namespace
+ * `%whos` -- Display detailed variable information
+ * `%timeit` -- Time the execution of a Python statement
+ * `%run` -- Execute a Python script file
+ * `%clear` -- Clear the console display
+ * `%help` -- Display help message for magic commands
+
+ In addition, custom magic commands can be defined by using the `add_magic_command()` method. Example:
+
+```python
+def version(args=None):
+    return '1.0.0'
+
+console = PythonConsole()
+console.add_magic_command("version", version)
+```
+
+Which can be used like so:
+
+```
+   IN [0]: %version
+           1.0.0
 ```
 
 ### Clear console
@@ -65,20 +97,15 @@ Simply pass the Pygments style string to the ``PythonConsole`` constructer like 
 A local method, named `clear()`, is available to clear the input screen and reset the line numbering.
 Enable it by pushing the method into the available namespace in the console:
 
-```
+```python
    console.interpreter.locals["clear"] = console.clear
 ```
 
 ### Shell commands
 
-Optionally, commands entered in the console that start with a special character (e.g. '!') will be executed as shell commands.
+Commands entered in the console that start with `!` will be executed as shell commands.
 The output of the command will be printed in the console.
-For example, on a Linux or macOS system, entering `!ls -l` will list the files in the current directory.
-This feature is enabled by default, but can be disabled by setting the ``shell_cmd_prefix=False`` parameter when creating the console.
-
-```python
-   console = PythonConsole()
-```
+For example, on a Linux or macOS system, entering `!ls -l` will list the files in the current directory. Example:
 
 ```
    IN [0]: !ls -l
@@ -93,17 +120,16 @@ By default ``IN [n]:`` and ``OUT [n]:`` are displayed before each input and outp
 You can customize this through constructor arguments:
 
 ```python
-   # Including the line numbers:
-   console = PythonConsole(inprompt="%d >", outprompt="%d <")
-   # Or just static:
-   console = PythonConsole(inprompt=">>>", outprompt="<<<")
+# Including the line numbers:
+console = PythonConsole(inprompt="%d >", outprompt="%d <")
+# Or just static:
+console = PythonConsole(inprompt=">>>", outprompt="<<<")
 ```
 
 ## Credits
 
-This module depends on QtPy which provides a compatibility layer for
-Qt4 and Qt5. The console is tested under both Qt4 and Qt5.
-
+This module depends on [QtPy](https://github.com/spyder-ide/qtpy) which provides a compatibility layer for
+Qt. The console is tested under both Qt5 and Qt6.
 
 <!-- .. _threaded.py: https://github.com/jacobwilliams/qonsole/blob/master/examples/threaded.py
 .. _inuithread.py: https://github.com/jacobwilliams/qonsole/blob/master/examples/inuithread.py
