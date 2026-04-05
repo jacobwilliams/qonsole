@@ -51,34 +51,14 @@ examples.
 
 ## Features
 
-### Customizing syntax highlighting
+### Syntax highlighting
 
-The coloring of the syntax highlighting can be customized by passing a
-``formats`` dictionary to the ``PythonConsole`` constructer. This dictionary
-must be shaped as follows:
+Syntax highlighting is provided by the [https://pygments.org](pygments) library.
+Simply pass the Pygments style string to the ``PythonConsole`` constructer like so:
 
 ```python
-    import qonsole.highlighter as hl
-    console = PythonConsole(formats={
-        'keyword':    hl.format('blue', 'bold'),
-        'operator':   hl.format('red'),
-        'brace':      hl.format('darkGray'),
-        'defclass':   hl.format('black', 'bold'),
-        'string':     hl.format('magenta'),
-        'string2':    hl.format('darkMagenta'),
-        'comment':    hl.format('darkGreen', 'italic'),
-        'self':       hl.format('black', 'italic'),
-        'numbers':    hl.format('brown'),
-        'inprompt':   hl.format('darkBlue', 'bold'),
-        'outprompt':  hl.format('darkRed', 'bold'),
-        'fstring':    hl.format('darkCyan', 'bold'),
-        'escape':     hl.format('darkorange', 'bold')
-        'magic':      hl.format('darkCyan', 'bold'),
-        'error':      hl.format("red", "bold"),
-    })
+    console = PythonConsole(pygments_style='github-dark')
 ```
-
-All keys are optional and default to the value shown above if left unspecified.
 
 ### Clear console
 
