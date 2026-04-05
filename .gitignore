@@ -217,4 +217,8 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
+.DS_Store# pixi environments
+.pixi/*
+!.pixi/config.toml
+
 .DS_Store

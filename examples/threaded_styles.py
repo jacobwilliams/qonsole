@@ -10,7 +10,7 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
-from pyqtconsole.console import PythonConsole
+from qonsole.console import PythonConsole
 
 welcome_msg = """Python Console v1.0
 Commands starting with ! are executed as shell commands
@@ -23,9 +23,9 @@ def greet():
 
 def version(args=None):
     """example of a custom magic command"""
-    import pyqtconsole
+    import qonsole
 
-    return str(pyqtconsole.__version__)
+    return str(qonsole.__version__)
 
 
 def change_pygments_style(style):

@@ -1,6 +1,6 @@
 import pytest
 
-from pyqtconsole.text import columnize
+from qonsole.text import columnize
 
 
 def _strip(text):

@@ -4,8 +4,8 @@ import sys
 
 from qtpy.QtWidgets import QApplication
 
-from pyqtconsole.console import PythonConsole
-from pyqtconsole.highlighter import format
+from qonsole.console import PythonConsole
+from qonsole.highlighter import format
 
 
 def greet():

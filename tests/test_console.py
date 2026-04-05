@@ -4,7 +4,7 @@ import pytest
 from pytestqt.qtbot import QtBot
 from qtpy.QtCore import Qt
 
-from pyqtconsole.console import PythonConsole
+from qonsole.console import PythonConsole
 
 
 class TestConsole:

@@ -4,7 +4,7 @@ import sys
 
 from qtpy.QtWidgets import QApplication
 
-from pyqtconsole.console import PythonConsole
+from qonsole.console import PythonConsole
 
 welcome_msg = """Python Console v1.0
 Commands starting with ! are executed as shell commands
@@ -21,9 +21,9 @@ def greet():
 
 def version(args=None):
     """example of a custom magic command"""
-    import pyqtconsole
+    import qonsole
 
-    return str(pyqtconsole.__version__)
+    return str(qonsole.__version__)
 
 
 if __name__ == "__main__":

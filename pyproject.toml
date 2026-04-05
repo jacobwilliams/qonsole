@@ -1,13 +1,13 @@
 [build-system]
-requires = ["setuptools >= 77.0.3"]
-# ^ minimum required for the modern `project.license`
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
-name = "pyqtconsole"
-dynamic = ["version", "readme"]
+name = "qonsole"
+version = "0.0.1"
+readme = "README.md"
 authors = [
-    {name = "Marcus Oskarsson", email = "marcus.oscarsson@esrf.fr"}
+    {name = "Jacob Williams", email = "jacobwilliams@users.noreply.github.com"}
 ]
 description = "Light-weight python interpreter, easy to embed into Qt applications"
 requires-python = ">=3.9,<4.0"
@@ -32,22 +32,27 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "ruff",
+    "hatch",
     "pytest",
     "pytest-cov",
     "pytest-qt",
 ]
 
 [project.urls]
-Homepage = "https://github.com/pyqtconsole/pyqtconsole"
+Homepage = "https://github.com/jacobwilliams/qonsole"
 
-[tool.setuptools]
-packages = ["pyqtconsole"]
-package-dir = {"" = "src"}
-include-package-data = true
+[tool.hatch.build.targets.wheel]
+packages = ["qonsole"]
 
-[tool.setuptools.dynamic]
-version = {attr = "pyqtconsole.__version__"}
-readme = {file = ["README.rst", "CHANGES.rst"], content-type = "text/x-rst"}
+
+# [tool.setuptools]
+# packages = ["qonsole"]
+# package-dir = {"" = "src"}
+# include-package-data = true
+
+# [tool.setuptools.dynamic]
+# version = {attr = "qonsole.__version__"}
+# readme = {file = ["README.rst", "CHANGES.rst"], content-type = "text/x-rst"}
 
 [tool.ruff.lint]
 select = [
@@ -58,3 +63,20 @@ select = [
     "SIM",  # flake8-simplify
     "I",  # isort
 ]
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["osx-arm64"]
+
+[tool.pixi.pypi-dependencies]
+qonsole = { path = ".", editable = true }
+
+[tool.pixi.environments]
+default = { solve-group = "default" }
+dev = { features = ["dev"], solve-group = "default" }
+
+[tool.pixi.tasks]
+
+[tool.pixi.dependencies]
+pyside6 = ">=6.11.0,<7"
+gevent = ">=25.9.1,<26"
+hatch = ">=1.16.5,<2"
