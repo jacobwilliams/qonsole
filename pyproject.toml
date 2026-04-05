@@ -44,16 +44,6 @@ Homepage = "https://github.com/jacobwilliams/qonsole"
 [tool.hatch.build.targets.wheel]
 packages = ["qonsole"]
 
-
-# [tool.setuptools]
-# packages = ["qonsole"]
-# package-dir = {"" = "src"}
-# include-package-data = true
-
-# [tool.setuptools.dynamic]
-# version = {attr = "qonsole.__version__"}
-# readme = {file = ["README.rst", "CHANGES.rst"], content-type = "text/x-rst"}
-
 [tool.ruff.lint]
 select = [
     "E",  # pycodestyle
@@ -63,9 +53,10 @@ select = [
     "SIM",  # flake8-simplify
     "I",  # isort
 ]
+
 [tool.pixi.workspace]
 channels = ["conda-forge"]
-platforms = ["osx-arm64"]
+platforms = ["osx-arm64", "linux-64", "win-64"]
 
 [tool.pixi.pypi-dependencies]
 qonsole = { path = ".", editable = true }
@@ -81,3 +72,7 @@ pyside6 = ">=6.11.0,<7"
 gevent = ">=25.9.1,<26"
 hatch = ">=1.16.5,<2"
 ruff = ">=0.15.9,<0.16"
+qtpy = ">=2.4.3,<3"
+jedi = ">=0.19.2,<0.20"
+pygments = ">=2.20.0,<3"
+ipython_pygments_lexers = ">=1.1.1,<2"
