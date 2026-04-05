@@ -54,7 +54,6 @@ class BaseConsole(QFrame):
     def __init__(
         self,
         parent: Optional["QFrame"] = None,
-        formats: Optional[dict[str, Any]] = None,
         shell_cmd_prefix: bool = True,
         inprompt: Optional[str] = None,
         outprompt: Optional[str] = None,
@@ -65,7 +64,6 @@ class BaseConsole(QFrame):
 
         Args:
             parent: Parent widget. Defaults to None.
-            formats: Dictionary of text formats for custom styling. Defaults to None.
             shell_cmd_prefix: If True, commands starting with ``!`` will be treated
                 as system commands and executed using subprocess. Defaults to True.
             inprompt: Input prompt template. If None, uses 'IN [%d]: ' where %d
@@ -75,15 +73,19 @@ class BaseConsole(QFrame):
             welcome_message: Welcome message to display at startup. Not syntax
                 highlighted. Defaults to None.
             pygments_style: Name of Pygments style (e.g., 'monokai', 'vim').
-                Defaults to None.
+                If None, uses 'default' style. Defaults to None.
         """
         super().__init__(parent)
+
+        # Use default Pygments style if none specified
+        if pygments_style is None:
+            pygments_style = "default"
 
         self.edit = edit = InputArea()
         self.pbar = pbar = PromptArea(
             edit,
             self._get_prompt_text,
-            PromptHighlighter(formats=formats, pygments_style=pygments_style),
+            PromptHighlighter(pygments_style=pygments_style),
         )
 
         layout = QHBoxLayout()
@@ -962,7 +964,6 @@ class PythonConsole(BaseConsole):
         self,
         parent: Optional["QFrame"] = None,
         locals: Optional[dict[str, Any]] = None,
-        formats: Optional[dict[str, Any]] = None,
         shell_cmd_prefix: bool = True,
         inprompt: Optional[str] = None,
         outprompt: Optional[str] = None,
@@ -975,17 +976,16 @@ class PythonConsole(BaseConsole):
             parent: Parent widget. Defaults to None.
             locals: Dictionary of local variables for the interpreter namespace.
                 Defaults to None.
-            formats: Dictionary of text formats for custom styling. Defaults to None.
             shell_cmd_prefix: If True, enable shell commands with ! prefix.
                 Defaults to True.
             inprompt: Input prompt template. Defaults to None.
             outprompt: Output prompt template. Defaults to None.
             welcome_message: Welcome message to display at startup. Defaults to None.
-            pygments_style: Name of Pygments style (e.g., 'monokai'). Defaults to None.
+            pygments_style: Name of Pygments style (e.g., 'monokai').
+                If None, uses 'default' style. Defaults to None.
         """
         super().__init__(
             parent,
-            formats=formats,
             shell_cmd_prefix=shell_cmd_prefix,
             inprompt=inprompt,
             outprompt=outprompt,
@@ -997,8 +997,12 @@ class PythonConsole(BaseConsole):
         # to prevent syntax highlighting of the message
         self._show_welcome_message()
 
+        # Use default Pygments style if none specified
+        if pygments_style is None:
+            pygments_style = "default"
+
         self.highlighter = PythonHighlighter(
-            self.edit.document(), formats=formats, pygments_style=pygments_style
+            self.edit.document(), pygments_style=pygments_style
         )
         self.interpreter = PythonInterpreter(self.stdin, self.stdout, locals=locals)
         self.interpreter.done_signal.connect(self._finish_command)

@@ -74,25 +74,6 @@ def format(color: Optional[str], style: str = "") -> QTextCharFormat:
     return _format
 
 
-# Syntax styles that can be shared by all languages
-STYLES = {
-    "keyword": format("blue", "bold"),
-    "operator": format("red"),
-    "brace": format("darkGray"),
-    "defclass": format("black", "bold"),
-    "string": format("magenta"),
-    "string2": format("darkMagenta"),
-    "comment": format("darkGreen", "italic"),
-    "self": format("black", "italic"),
-    "numbers": format("brown"),
-    "inprompt": format("darkBlue", "bold"),
-    "outprompt": format("darkRed", "bold"),
-    "fstring": format("darkCyan", "bold"),
-    "escape": format("darkorange", "bold"),
-    "error": format("red", "bold"),
-}
-
-
 def pygments_style_to_format(style_dict: Optional[str]) -> Optional[QTextCharFormat]:
     """Convert a Pygments style dictionary entry to QTextCharFormat.
 
@@ -144,12 +125,7 @@ def build_token_style_map(
     styles: dict[str, QTextCharFormat] = {}
 
     for key, token_type in token_map.items():
-        style_string = _find_token_style(style, token_type)
-        if style_string:
-            fmt = pygments_style_to_format(style_string)
-            styles[key] = fmt if fmt else STYLES[key]
-        else:
-            styles[key] = STYLES[key]
+        styles[key] = pygments_style_to_format(_find_token_style(style, token_type))
 
     return styles
 
@@ -157,30 +133,17 @@ def build_token_style_map(
 class PromptHighlighter:
     """Syntax highlighter for console input/output prompts.
 
-    Applies formatting to prompt text (e.g., "IN [1]:" and "OUT[1]:") using
-    either custom formats or Pygments color schemes.
+    Applies formatting to prompt text (e.g., "IN [1]:" and "OUT[1]:")
+    using Pygments color schemes.
     """
 
-    def __init__(
-        self,
-        formats: Optional[dict[str, QTextCharFormat]] = None,
-        pygments_style: Optional[str] = None,
-    ) -> None:
+    def __init__(self, pygments_style: str) -> None:
         """Initialize the prompt highlighter.
 
         Args:
-            formats: Custom format dictionary. If provided, overrides pygments_style.
-                Defaults to None.
             pygments_style: Name of Pygments style to use (e.g., 'monokai').
-                Defaults to None.
         """
-        self.styles: dict[str, QTextCharFormat] = dict(STYLES)
-        if pygments_style:
-            # Use Pygments built-in style
-            self.updateStyle(pygments_style)
-        elif formats:
-            # Legacy: use custom formats
-            self.styles.update(formats)
+        self.updateStyle(pygments_style)
 
     def updateStyle(self, style_name: str) -> None:
         """Change the Pygments color scheme for prompts.
@@ -225,82 +188,25 @@ class PythonHighlighter(QSyntaxHighlighter):
     """Syntax highlighter for Python code using Pygments.
 
     Provides context-aware syntax highlighting for Python code with support
-    for custom color schemes and Pygments styles.
+    for Pygments color schemes.
     """
 
-    def __init__(
-        self,
-        document: object,
-        formats: Optional[dict[str, QTextCharFormat]] = None,
-        pygments_style: Optional[str] = None,
-    ) -> None:
+    def __init__(self, document: object, pygments_style: str) -> None:
         """Initialize the Python syntax highlighter.
 
         Args:
             document: The QTextDocument to highlight.
-            formats: Optional dict mapping style names to QTextCharFormat objects.
-                If provided, overrides pygments_style. Defaults to None.
             pygments_style: Name of Pygments style to use (e.g., 'monokai',
-                'vim', 'friendly'). Defaults to None, which uses custom STYLES.
+                'vim', 'friendly').
         """
         QSyntaxHighlighter.__init__(self, document)
 
         self.lexer = PythonLexer()
-
-        # Build token formats from Pygments style or custom formats
-        self.styles = dict(STYLES)
-        if pygments_style:
-            # Use Pygments built-in style
-            self.token_formats = self._build_pygments_token_formats(pygments_style)
-        else:
-            if formats:
-                # Legacy: use custom formats
-                self.styles.update(formats)
-            self.token_formats = self._build_custom_token_formats()
+        self.token_formats = self._build_pygments_token_formats(pygments_style)
 
         # Cache tokenized document by content hash
         self._cached_doc_text: Optional[str] = None
         self._line_formats: dict[int, list[tuple[int, int, QTextCharFormat]]] = {}
-
-    def _build_custom_token_formats(self) -> dict[object, QTextCharFormat]:
-        """Build token format map from custom STYLES dictionary.
-
-        Returns:
-            Dict mapping Token types to QTextCharFormat objects.
-        """
-        styles = self.styles
-        return {
-            Token.Keyword: styles["keyword"],
-            Token.Keyword.Constant: styles["keyword"],
-            Token.Keyword.Declaration: styles["keyword"],
-            Token.Keyword.Namespace: styles["keyword"],
-            Token.Keyword.Pseudo: styles["keyword"],
-            Token.Keyword.Reserved: styles["keyword"],
-            Token.Keyword.Type: styles["keyword"],
-            Token.Name.Builtin: styles["keyword"],
-            Token.Name.Class: styles["defclass"],
-            Token.Name.Function: styles["defclass"],
-            Token.Name.Decorator: styles["defclass"],
-            Token.String: styles["string"],
-            Token.String.Double: styles["string"],
-            Token.String.Single: styles["string"],
-            Token.String.Doc: styles["string2"],
-            Token.String.Escape: styles["escape"],
-            Token.String.Interpol: styles["fstring"],
-            Token.String.Affix: styles["string"],
-            Token.Number: styles["numbers"],
-            Token.Number.Integer: styles["numbers"],
-            Token.Number.Float: styles["numbers"],
-            Token.Number.Hex: styles["numbers"],
-            Token.Number.Oct: styles["numbers"],
-            Token.Number.Bin: styles["numbers"],
-            Token.Comment: styles["comment"],
-            Token.Comment.Single: styles["comment"],
-            Token.Comment.Multiline: styles["comment"],
-            Token.Operator: styles["operator"],
-            Token.Punctuation: styles["brace"],
-            Token.Generic.Error: styles["error"],
-        }
 
     def _build_pygments_token_formats(
         self, style_name: str
@@ -319,9 +225,7 @@ class PythonHighlighter(QSyntaxHighlighter):
         # Convert each token type in the style
         # style.styles is a dict: {token_type: style_string}
         for token_type, style_string in style.styles.items():
-            fmt = pygments_style_to_format(style_string)
-            if fmt:
-                token_formats[token_type] = fmt
+            token_formats[token_type] = pygments_style_to_format(style_string)
 
         return token_formats
 
