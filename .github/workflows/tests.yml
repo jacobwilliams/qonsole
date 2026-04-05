@@ -40,7 +40,7 @@ jobs:
       with:
         python-version: ${{matrix.python}}
 
-    - run: pip install pytest pytest-cov pytest-qt ${{ matrix.qt }}
+    - run: pip install pytest pytest-qt ${{ matrix.qt }}
     - run: pip install -e .
 
     - name: Install Qt system dependencies
@@ -48,9 +48,4 @@ jobs:
       run: sudo apt-get update && sudo apt-get install -y libegl1 libxkbcommon-x11-0
       # We need quite some packages for `pytest-qt` to run without problems
 
-    - run: pytest --cov=qonsole --cov-report term --cov-report xml
-
-    - name: Upload code coverage
-      if: matrix.python == '3.13' && matrix.os == 'macos-latest' && matrix.qt == 'PySide6'
-      # Upload needs to be done only once
-      uses: coverallsapp/github-action@v2
+    - run: pytest

@@ -149,10 +149,6 @@ Qt4 and Qt5. The console is tested under both Qt4 and Qt5.
    :target:             https://github.com/jacobwilliams/qonsole/actions/workflows/tests.yml
    :alt:                Tests status
 
-.. |Coverage| image::   https://coveralls.io/repos/github/jacobwilliams/qonsole/badge.svg
-   :target:             https://coveralls.io/github/jacobwilliams/qonsole
-   :alt:                Coverage
-
 .. |Conda| image::      https://img.shields.io/conda/vn/conda-forge/qonsole.svg
    :target:             https://anaconda.org/conda-forge/qonsole
    :alt:                Conda-Forge -->
