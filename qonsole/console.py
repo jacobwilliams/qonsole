@@ -1177,3 +1177,54 @@ class InputArea(QPlainTextEdit):
             mime_data: QMimeData containing clipboard content.
         """
         return self.parent().insertFromMimeData(mime_data)
+
+    def contextMenuEvent(self, event: Any) -> None:
+        """Show custom context menu with copy, paste, and select all.
+
+        Args:
+            event: QContextMenuEvent containing menu request details.
+        """
+        menu = self.createStandardContextMenu()
+
+        # Find and enable the paste action (disabled in read-only mode)
+        paste_action = None
+        for action in menu.actions():
+            # The paste action exists but is disabled in read-only mode
+            if "paste" in action.text().lower():
+                paste_action = action
+                break
+
+        if paste_action:
+            # Enable it and reconnect to our custom handler
+            paste_action.setEnabled(True)
+            # Disconnect default handler and connect ours
+            paste_action.triggered.disconnect()
+            paste_action.triggered.connect(
+                lambda: self.parent().insertFromMimeData(
+                    QApplication.clipboard().mimeData(QClipboard.Clipboard)
+                )
+            )
+        else:
+            # Fallback: create paste action
+
+            # Find position after copy
+            insert_pos = 0
+            for i, action in enumerate(menu.actions()):
+                if "copy" in action.text().lower():
+                    insert_pos = i + 1
+                    break
+
+            paste_action = menu.addAction("Paste")
+            paste_action.setShortcut("Ctrl+V")
+            paste_action.triggered.connect(
+                lambda: self.parent().insertFromMimeData(
+                    QApplication.clipboard().mimeData(QClipboard.Clipboard)
+                )
+            )
+
+            # Move to correct position
+            if insert_pos < len(menu.actions()) - 1:
+                menu.removeAction(paste_action)
+                menu.insertAction(menu.actions()[insert_pos], paste_action)
+
+        menu.exec_(event.globalPos())
