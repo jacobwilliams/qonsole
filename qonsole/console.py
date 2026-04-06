@@ -11,6 +11,7 @@ import threading
 from abc import abstractmethod
 from typing import Any, Callable, Optional, Union
 
+from jedi import Interpreter, settings
 from qtpy.QtCore import QEvent, Qt, QThread, Slot
 from qtpy.QtGui import QClipboard, QFont, QFontMetrics, QTextCursor
 from qtpy.QtWidgets import QApplication, QFrame, QHBoxLayout, QPlainTextEdit
@@ -28,14 +29,7 @@ from .magic import MagicCmds
 from .prompt import PromptArea
 from .stream import Stream
 
-try:
-    import jedi
-    from jedi import settings
-
-    settings.case_insensitive_completion = False
-except ImportError:
-    jedi = None
-
+settings.case_insensitive_completion = False
 
 try:  # PyQt >= 5.11
     QueuedConnection = Qt.ConnectionType.QueuedConnection
@@ -152,7 +146,7 @@ class BaseConsole(QFrame):
         self._key_event_handlers = self._get_key_event_handlers()
 
         self.command_history = CommandHistory(self)
-        self.auto_complete = jedi and AutoComplete(self)
+        self.auto_complete = AutoComplete(self)
 
         # Store welcome message to be displayed by subclass if needed
         self._welcome_message = welcome_message
@@ -1062,7 +1056,7 @@ class PythonConsole(BaseConsole):
         Returns:
             List of completion name strings.
         """
-        script = jedi.Interpreter(line, [self.interpreter.locals])
+        script = Interpreter(line, [self.interpreter.locals])
 
         try:
             comps = script.complete()
