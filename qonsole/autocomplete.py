@@ -45,12 +45,18 @@ class AutoComplete(QObject):
         self.mode: int = COMPLETE_MODE.INLINE
         self.completer: Optional[QCompleter] = None
         self._last_key: Optional[int] = None
+        self._completing_active: bool = False
 
         parent.edit.installEventFilter(self)
+        parent.edit.textChanged.connect(self._on_text_changed)
         self.init_completion_list([])
 
     def eventFilter(self, widget: QObject, event: QEvent) -> bool:
         """Filter events to intercept key presses for completion.
+
+        Handles events from both the edit widget and the completion popup.
+        For the popup, forwards typing events back to the edit widget while
+        preserving navigation keys.
 
         Args:
             widget: Widget that generated the event.
@@ -60,14 +66,38 @@ class AutoComplete(QObject):
             True if the event was handled and should be filtered, False otherwise.
         """
         if event.type() == QEvent.KeyPress:
-            return bool(self.key_pressed_handler(event))
+            # Check if this event is from the popup
+            if self.completer and widget == self.completer.popup():
+                key = event.key()
+                # Navigation keys stay with the popup
+                if (
+                    key in (Qt.Key_Up, Qt.Key_Down, Qt.Key_PageUp, Qt.Key_PageDown)
+                    or key in (Qt.Key_Return, Qt.Key_Enter)
+                    or key == Qt.Key_Tab
+                ):
+                    return False
+                # Escape to close
+                elif key == Qt.Key_Escape:
+                    self.hide_completion_suggestions()
+                    return True
+                # For everything else (typing, backspace, etc.), forward to edit widget
+                else:
+                    # Forward the event to the edit widget
+                    from qtpy.QtCore import QCoreApplication
+
+                    QCoreApplication.sendEvent(self.parent().edit, event)
+                    return True
+            # Event from edit widget
+            else:
+                return bool(self.key_pressed_handler(event))
         return False
 
     def key_pressed_handler(self, event: QEvent) -> bool:
         """Handle key press events for completion.
 
         Intercepts Tab, Enter, Return, Space, and Escape keys to manage
-        completion behavior.
+        completion behavior. Regular typing is allowed to pass through
+        and the completion list updates automatically via textChanged signal.
 
         Args:
             event: QKeyEvent to handle.
@@ -84,6 +114,8 @@ class AutoComplete(QObject):
             intercepted = self.handle_complete_key(event)
         elif key == Qt.Key_Escape:
             intercepted = self.hide_completion_suggestions()
+        # All other keys (including typing, backspace, delete) pass through
+        # The textChanged signal will update the completion prefix automatically
 
         self._last_key = key
         return intercepted
@@ -158,6 +190,38 @@ class AutoComplete(QObject):
         # Return word after the last separator
         return _buffer[sep_idx + 1 :].strip() if sep_idx >= 0 else _buffer.strip()
 
+    def _on_text_changed(self) -> None:
+        """Handle text changes in the edit widget.
+
+        When the completion popup is visible and text changes, update the
+        completion prefix to filter the list based on what's been typed,
+        and automatically select the first matching item.
+        """
+        # Only process if we're actively completing
+        if not self._completing_active:
+            return
+
+        _buffer = self.parent().input_buffer()
+        word_being_completed = self._get_word_being_completed(_buffer)
+
+        # Update the prefix, which filters the completion list
+        self.completer.setCompletionPrefix(word_being_completed)
+
+        # If no matches remain, hide the popup
+        if self.completer.completionCount() == 0:
+            self.hide_completion_suggestions()
+        else:
+            # Always ensure popup is visible at current cursor position
+            # This is necessary because setCompletionPrefix can hide the popup
+            popup = self.completer.popup()
+            if popup and not popup.isVisible():
+                cr = self.parent().edit.cursorRect()
+                self.completer.complete(cr)
+            
+            # Select the first matching item in the popup
+            if popup:
+                popup.setCurrentIndex(self.completer.completionModel().index(0, 0))
+
     def init_completion_list(self, words: list[str]) -> None:
         """Initialize the QCompleter with a list of completion words.
 
@@ -182,6 +246,15 @@ class AutoComplete(QObject):
         if self.mode == COMPLETE_MODE.DROPDOWN:
             self.completer.setCompletionMode(QCompleter.PopupCompletion)
             self.completer.activated[str].connect(self.insert_completion)
+
+            # Configure popup to allow typing to filter
+            popup = self.completer.popup()
+            if popup:
+                # Install event filter on popup to forward typing back to edit
+                popup.installEventFilter(self)
+                # Keep focus on the edit widget
+                popup.setFocusPolicy(Qt.NoFocus)
+                popup.setFocusProxy(self.parent().edit)
         else:
             self.completer.setCompletionMode(QCompleter.InlineCompletion)
 
@@ -215,11 +288,26 @@ class AutoComplete(QObject):
 
         self.init_completion_list(words)
 
-        leastcmn = long_substr(words)
-        # Only insert the common substring if it's not empty
-        # This handles "from os import " where there's no partial word yet
-        if leastcmn:
-            self.insert_completion(leastcmn)
+        # For dropdown mode, don't auto-insert common substring
+        # Let the user type or select from the menu
+        if self.mode == COMPLETE_MODE.DROPDOWN:
+            # Find common substring but don't insert it yet
+            leastcmn = long_substr(words)
+            # We could insert it, but it's better to let user type/select
+            # If we want to insert common prefix:
+            # if leastcmn and len(leastcmn) > len(self._get_word_being_completed(_buffer)):
+            #     # Temporarily insert without finalizing completion
+            #     pass
+        else:
+            # For inline mode, insert common substring
+            leastcmn = long_substr(words)
+            if leastcmn:
+                # Temporarily block signals to avoid triggering textChanged
+                # which would interfere with completion setup
+                edit = self.parent().edit
+                edit.blockSignals(True)
+                self.insert_completion(leastcmn)
+                edit.blockSignals(False)
 
         # If only one word to complete, just return and don't display options
         if len(words) == 1:
@@ -232,7 +320,16 @@ class AutoComplete(QObject):
             popup_width += sbar_w.sizeHint().width()
             cr.setWidth(popup_width)
             self.completer.complete(cr)
+            
+            # Mark that we're actively completing
+            self._completing_active = True
+            
+            # Select the first item in the popup
+            popup = self.completer.popup()
+            if popup:
+                popup.setCurrentIndex(self.completer.completionModel().index(0, 0))
         elif self.mode == COMPLETE_MODE.INLINE:
+            self._completing_active = True
             cl = columnize(words, colsep="  |  ")
             self.parent()._insert_output_text(
                 "\n\n" + cl + "\n", lf=True, keep_buffer=True
@@ -244,6 +341,7 @@ class AutoComplete(QObject):
         Returns:
             True if a popup was hidden, False otherwise.
         """
+        self._completing_active = False
         if self.completing():
             self.completer.popup().close()
             return True
@@ -272,6 +370,9 @@ class AutoComplete(QObject):
         # Close the popup first if it's visible
         if self.completing():
             self.completer.popup().hide()
+        
+        # Clear the active completion flag
+        self._completing_active = False
 
         _buffer = self.parent().input_buffer()
         word_being_completed = self._get_word_being_completed(_buffer)
