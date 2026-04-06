@@ -35,19 +35,19 @@ sys.exit(app.exec_())
 ## Embedding
 
 * *Separate thread* - Runs the interpreter in a separate thread, see the
-  example threaded.py_. Running the interpreter in a separate thread obviously
+  example `threaded.py`. Running the interpreter in a separate thread obviously
   limits the interaction with the Qt application. The parts of Qt that needs
   to be called from the main thread will not work properly, but is excellent
   way for having a 'plain' python console in your Qt app.
 
 * *main thread* - Runs the interpreter in the main thread, see the example
-  inuithread.py_. Makes full interaction with Qt possible, lenghty operations
+  `inuithread.py`. Makes full interaction with Qt possible, lenghty operations
   will of course freeze the UI (as any lenghty operation that is called from
   the main thread). This is a great alternative for people who does not want
   to use the gevent based approach but still wants full interactivity with Qt.
 
 * *gevent* - Runs the interpreter in a gevent task, see the example
-  `_gevent.py`_. Allows for full interactivity with Qt without special
+  `_gevent.py`. Allows for full interactivity with Qt without special
   consideration (at least to some extent) for longer running processes. The
   best method if you want to use pyQtgraph, Matplotlib, PyMca or similar.
 
@@ -132,31 +132,3 @@ console = PythonConsole(inprompt=">>>", outprompt="<<<")
 
 This module depends on [QtPy](https://github.com/spyder-ide/qtpy) which provides a compatibility layer for
 Qt. The console is tested under both Qt5 and Qt6.
-
-<!-- .. _threaded.py: https://github.com/jacobwilliams/qonsole/blob/master/examples/threaded.py
-.. _inuithread.py: https://github.com/jacobwilliams/qonsole/blob/master/examples/inuithread.py
-.. _`_gevent.py`: https://github.com/jacobwilliams/qonsole/blob/master/examples/_gevent.py
-.. _QtPy: https://github.com/spyder-ide/qtpy
-
-
-.. Badges:
-
-.. |PyPi| image::       https://img.shields.io/pypi/v/qonsole.svg
-   :target:             https://pypi.org/project/qonsole
-   :alt:                Latest Version
-
-.. |Python| image::     https://img.shields.io/pypi/pyversions/qonsole.svg
-   :target:             https://pypi.org/project/qonsole#files
-   :alt:                Python versions
-
-.. |License| image::    https://img.shields.io/pypi/l/qonsole.svg
-   :target:             https://github.com/jacobwilliams/qonsole/blob/master/LICENSE
-   :alt:                License: MIT
-
-.. |Tests| image::      https://github.com/jacobwilliams/qonsole/actions/workflows/tests.yml/badge.svg
-   :target:             https://github.com/jacobwilliams/qonsole/actions/workflows/tests.yml
-   :alt:                Tests status
-
-.. |Conda| image::      https://img.shields.io/conda/vn/conda-forge/qonsole.svg
-   :target:             https://anaconda.org/conda-forge/qonsole
-   :alt:                Conda-Forge -->
