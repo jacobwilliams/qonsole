@@ -809,8 +809,13 @@ class BaseConsole(QFrame):
             self._insert_output_text(f"Error executing magic command: {str(e)}\n")
 
     def _handle_ctrl_c(self) -> None:
-        """Inject keyboard interrupt if code is being executed in a thread,
+        """Copy text if selected, else inject keyboard interrupt if executing,
         else cancel the current prompt."""
+        # If text is selected, copy it instead of interrupting
+        if self._textCursor().hasSelection():
+            self.edit.copy()
+            return
+
         # There is a race condition here, we should lock on the value of
         # executing() to avoid accidentally raising KeyboardInterrupt after
         # execution has finished. Deal with this later…
