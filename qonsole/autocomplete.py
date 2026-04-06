@@ -133,14 +133,13 @@ class AutoComplete(QObject):
             return False
 
         if self.mode == COMPLETE_MODE.DROPDOWN:
-            if self.parent().input_buffer().split("\n")[-1].strip():
-                if self.completing():
-                    self.complete()
-                else:
-                    self.trigger_complete()
+            if self.completing():
+                self.complete()
+            else:
+                self.trigger_complete()
 
-                event.accept()
-                return True
+            event.accept()
+            return True
 
         elif self.mode == COMPLETE_MODE.INLINE:
             if self._last_key == Qt.Key_Tab:
