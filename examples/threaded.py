@@ -10,8 +10,8 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
-from qonsole import __version__ as qonsole_version
 from qonsole import PythonConsole
+from qonsole import __version__ as qonsole_version
 
 welcome_msg = """Python Console v1.0
 Commands starting with ! are executed as shell commands.
