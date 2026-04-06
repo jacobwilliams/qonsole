@@ -10,7 +10,7 @@ import gevent  # noqa: E402
 from qtpy.QtCore import QTimer  # noqa: E402
 from qtpy.QtWidgets import QApplication  # noqa: E402
 
-from qonsole.console import PythonConsole  # noqa: E402
+from qonsole import PythonConsole  # noqa: E402
 
 
 def greet():

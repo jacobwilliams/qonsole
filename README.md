@@ -1,12 +1,14 @@
-qonsole
-===========
 
-qonsole is a lightweight python console for Qt applications. It's made to
-be easy to embed in other Qt applications and comes with some examples that
+![qonsole](media/qonsole.png)
+
+# qonsole
+
+Qonsole is a lightweight Python console for Qt applications. It's made to
+be easy to embed in other PySide/PyQt applications and comes with some examples that
 show how this can be done. The interpreter can run in a separate thread, in
 the UI main thread or in a gevent task.
 
-qonsole is a fork of [pyqtconsole](https://github.com/pyqtconsole/pyqtconsole).
+Qonsole is a fork of [pyqtconsole](https://github.com/pyqtconsole/pyqtconsole).
 
 ## Simple usage
 
@@ -20,7 +22,7 @@ import sys
 from threading import Thread
 from PyQt5.QtWidgets import QApplication
 
-from qonsole.console import PythonConsole
+from qonsole import PythonConsole
 
 app = QApplication([])
 console = PythonConsole()

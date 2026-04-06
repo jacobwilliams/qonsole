@@ -4,7 +4,7 @@ import sys
 
 from qtpy.QtWidgets import QApplication
 
-from qonsole.console import PythonConsole
+from qonsole import PythonConsole
 
 
 def greet():

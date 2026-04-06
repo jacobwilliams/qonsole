@@ -6,3 +6,8 @@ It supports syntax highlighting, command history, and autocompletion.
 
 __version__ = "1.0.0"
 __description__ = "Lightweight python console, easy to embed into Qt applications"
+
+
+from .console import PythonConsole
+
+__all__ = ["PythonConsole"]
