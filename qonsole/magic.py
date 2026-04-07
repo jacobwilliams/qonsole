@@ -202,18 +202,39 @@ class MagicCmds:
             return f"Error running script: {str(e)}\n"
 
     def _HELP(self, args: Optional[str] = None) -> str:
-        """Display help message for magic commands.
+        """Display help message for magic commands or Python help.
+
+        If no arguments provided, shows available magic commands.
+        If argument provided, displays Python help for that object.
 
         Args:
-            args: Unused, for consistency with other magic commands.
+            args: Optional object name to get help for.
 
         Returns:
-            List of available magic commands.
+            Help text or list of available magic commands.
         """
-        available_cmds = ", ".join(
-            [f"%{c}" for c in sorted(self.MAGIC_COMMANDS.keys())]
-        )
-        return f"Available magic commands: {available_cmds}\n"
+        if not args:
+            available_cmds = ", ".join(
+                [f"%{c}" for c in sorted(self.MAGIC_COMMANDS.keys())]
+            )
+            return f"Available magic commands: {available_cmds}\n"
+
+        # Get help for the specified object
+        import contextlib
+        import io
+
+        try:
+            # Try to evaluate the argument in the interpreter's namespace
+            obj = eval(args, self.parent.interpreter.locals)
+
+            # Capture help() output
+            help_buffer = io.StringIO()
+            with contextlib.redirect_stdout(help_buffer):
+                help(obj)
+
+            return help_buffer.getvalue()
+        except Exception as e:
+            return f"Error getting help for '{args}': {str(e)}\n"
 
     def run(self, cmd: str, args: Optional[str]) -> str:
         """Execute a magic command.
