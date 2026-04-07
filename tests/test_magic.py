@@ -36,7 +36,7 @@ class TestMagicCmds:
         original = os.getcwd()
         try:
             with tempfile.TemporaryDirectory() as tmpdir:
-                result = magic._CD(tmpdir)
+                magic._CD(tmpdir)
                 # Normalize paths (macOS has /private/var and /var symlinks)
                 assert os.path.realpath(tmpdir) == os.path.realpath(os.getcwd())
         finally:
