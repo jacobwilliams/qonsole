@@ -40,7 +40,7 @@ jobs:
       with:
         python-version: ${{matrix.python}}
 
-    - run: pip install pytest pytest-qt ${{ matrix.qt }}
+    - run: pip install coverage pytest pytest-qt ${{ matrix.qt }}
     - run: pip install -e .
 
     - name: Install Qt system dependencies
@@ -48,4 +48,4 @@ jobs:
       run: sudo apt-get update && sudo apt-get install -y libegl1 libxkbcommon-x11-0
       # We need quite some packages for `pytest-qt` to run without problems
 
-    - run: pytest
+    - run: coverage run -m pytest tests/ -v && coverage report
