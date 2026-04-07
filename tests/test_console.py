@@ -54,7 +54,7 @@ class TestConsole:
 
         def check():
             content = self.console.edit.toPlainText()
-            assert "/" in content  # Should contain a path
+            assert "/" in content.replace("\\", "/")  # Should contain a path
 
         self.bot.waitUntil(check)
 
