@@ -34,13 +34,13 @@ class TestMagicCmds:
     def test_cd(self, magic):
         """Test %cd changes directory."""
         original = os.getcwd()
-        try:
-            with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            try:
                 magic._CD(tmpdir)
                 # Normalize paths (macOS has /private/var and /var symlinks)
                 assert os.path.realpath(tmpdir) == os.path.realpath(os.getcwd())
-        finally:
-            os.chdir(original)  # Restore
+            finally:
+                os.chdir(original)  # Restore before tmpdir cleanup
 
     def test_cd_tilde(self, magic):
         """Test %cd ~ expands to home directory."""
