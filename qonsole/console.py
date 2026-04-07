@@ -12,8 +12,9 @@ from abc import abstractmethod
 from typing import Any, Callable, Optional, Union
 
 from jedi import Interpreter, settings
+from pygments.styles import get_style_by_name
 from qtpy.QtCore import QEvent, Qt, QThread, Slot
-from qtpy.QtGui import QClipboard, QFont, QFontMetrics, QTextCursor
+from qtpy.QtGui import QClipboard, QColor, QFont, QFontMetrics, QTextCursor
 from qtpy.QtWidgets import QApplication, QFrame, QHBoxLayout, QPlainTextEdit
 
 from .autocomplete import COMPLETE_MODE, AutoComplete
@@ -997,8 +998,14 @@ class PythonConsole(BaseConsole):
         self.set_auto_complete_mode(COMPLETE_MODE.DROPDOWN)
         self._thread: Optional[Thread] = None
 
+        # Apply the background color from the Pygments style
+        self.set_pygments_style(pygments_style)
+
     def set_pygments_style(self, style_name: str) -> None:
         """Change the Pygments color scheme for both code and prompts.
+
+        Also updates the console background color to match the style's
+        background_color attribute if available.
 
         Args:
             style_name: Name of Pygments style (e.g., 'monokai', 'vim')
@@ -1007,6 +1014,53 @@ class PythonConsole(BaseConsole):
         self.highlighter.updateStyle(style_name)
         # Update prompt highlighter
         self.pbar.highlighter.updateStyle(style_name)
+
+        # Get the background color and default text color from the Pygments style
+        try:
+            from pygments.token import Token
+
+            style = get_style_by_name(style_name)
+
+            # Get background color
+            bg_color = None
+            if hasattr(style, "background_color") and style.background_color:
+                bg_color = style.background_color
+
+            # Try to get default text color from Token or Token.Text
+            fg_color = None
+            if Token in style.styles and style.styles[Token]:
+                # Extract color from style string (format: "#rrggbb" or "#rrggbb bg:...")
+                style_str = style.styles[Token]
+                if style_str and style_str.startswith("#"):
+                    fg_color = style_str.split()[0]
+            elif Token.Text in style.styles and style.styles[Token.Text]:
+                style_str = style.styles[Token.Text]
+                if style_str and style_str.startswith("#"):
+                    fg_color = style_str.split()[0]
+
+            # If no explicit text color, derive from background brightness
+            if not fg_color and bg_color:
+                # Calculate brightness from hex color
+                bg_rgb = QColor(bg_color)
+                # Use perceived brightness: https://www.w3.org/TR/AERT/#color-contrast
+                brightness = (
+                    bg_rgb.red() * 299 + bg_rgb.green() * 587 + bg_rgb.blue() * 114
+                ) / 1000
+                # If background is light (brightness > 128), use dark text; else use light text
+                fg_color = "#000000" if brightness > 128 else "#ffffff"
+
+            # Apply colors to the edit widget using stylesheet
+            if bg_color and fg_color:
+                self.edit.setStyleSheet(
+                    f"QPlainTextEdit {{ background-color: {bg_color}; color: {fg_color}; }}"
+                )
+            elif bg_color:
+                self.edit.setStyleSheet(
+                    f"QPlainTextEdit {{ background-color: {bg_color}; }}"
+                )
+        except Exception as e:
+            print(f"Error applying colors for style '{style_name}': {e}")
+
         # Force repaint of prompt area
         self.pbar.update()
 
