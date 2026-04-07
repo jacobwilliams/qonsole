@@ -132,3 +132,7 @@ console = PythonConsole(inprompt=">>>", outprompt="<<<")
 
 This module depends on [QtPy](https://github.com/spyder-ide/qtpy) which provides a compatibility layer for
 Qt. The console is tested under both Qt5 and Qt6.
+
+## Development
+
+To generate coverage information for the unit tests, run `coverage run -m pytest tests/ && coverage report -m && coverage html`
