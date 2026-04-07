@@ -1073,7 +1073,7 @@ class PythonConsole(BaseConsole):
         """Clear the console display and reset syntax highlighting cache."""
         super().clear()
         # Clear the highlighter's cache to prevent highlighting sync issues
-        if hasattr(self, 'highlighter'):
+        if hasattr(self, "highlighter"):
             self.highlighter._cached_doc_text = None
             self.highlighter._line_formats = {}
 
