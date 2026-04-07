@@ -1029,7 +1029,8 @@ class PythonConsole(BaseConsole):
             # Try to get default text color from Token or Token.Text
             fg_color = None
             if Token in style.styles and style.styles[Token]:
-                # Extract color from style string (format: "#rrggbb" or "#rrggbb bg:...")
+                # Extract color from style string
+                # (format: "#rrggbb" or "#rrggbb bg:...")
                 style_str = style.styles[Token]
                 if style_str and style_str.startswith("#"):
                     fg_color = style_str.split()[0]
@@ -1041,19 +1042,23 @@ class PythonConsole(BaseConsole):
             # If no explicit text color, derive from background brightness
             if not fg_color and bg_color:
                 # Calculate brightness from hex color
-                bg_rgb = QColor(bg_color)
+                rgb = QColor(bg_color)
                 # Use perceived brightness: https://www.w3.org/TR/AERT/#color-contrast
                 brightness = (
-                    bg_rgb.red() * 299 + bg_rgb.green() * 587 + bg_rgb.blue() * 114
+                    rgb.red() * 299 + rgb.green() * 587 + rgb.blue() * 114
                 ) / 1000
-                # If background is light (brightness > 128), use dark text; else use light text
+                # If background is light (brightness > 128),
+                # use dark text; else use light text
                 fg_color = "#000000" if brightness > 128 else "#ffffff"
 
             # Apply colors to the edit widget using stylesheet
             if bg_color and fg_color:
-                self.edit.setStyleSheet(
-                    f"QPlainTextEdit {{ background-color: {bg_color}; color: {fg_color}; }}"
+                stylesheet = (
+                    f"QPlainTextEdit {{ "
+                    f"background-color: {bg_color}; "
+                    f"color: {fg_color}; }}"
                 )
+                self.edit.setStyleSheet(stylesheet)
             elif bg_color:
                 self.edit.setStyleSheet(
                     f"QPlainTextEdit {{ background-color: {bg_color}; }}"
