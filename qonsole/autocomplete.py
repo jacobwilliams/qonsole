@@ -216,7 +216,7 @@ class AutoComplete(QObject):
             if popup and not popup.isVisible():
                 cr = self.parent().edit.cursorRect()
                 self.completer.complete(cr)
-            
+
             # Select the first matching item in the popup
             if popup:
                 popup.setCurrentIndex(self.completer.completionModel().index(0, 0))
@@ -287,16 +287,16 @@ class AutoComplete(QObject):
 
         self.init_completion_list(words)
 
+        # Check if completer has any matches after setting prefix
+        if self.completer.completionCount() == 0:
+            # No matches with the current prefix, so don't show popup
+            return
+
         # For dropdown mode, don't auto-insert common substring
         # Let the user type or select from the menu
         if self.mode == COMPLETE_MODE.DROPDOWN:
             # Find common substring but don't insert it yet
             leastcmn = long_substr(words)
-            # We could insert it, but it's better to let user type/select
-            # If we want to insert common prefix:
-            # if leastcmn and len(leastcmn) > len(self._get_word_being_completed(_buffer)):
-            #     # Temporarily insert without finalizing completion
-            #     pass
         else:
             # For inline mode, insert common substring
             leastcmn = long_substr(words)
@@ -308,9 +308,10 @@ class AutoComplete(QObject):
                 self.insert_completion(leastcmn)
                 edit.blockSignals(False)
 
-        # If only one word to complete, just return and don't display options
-        if len(words) == 1:
-            return
+            # If only one word to complete in inline mode,
+            # just return and don't display options
+            if len(words) == 1:
+                return
 
         if self.mode == COMPLETE_MODE.DROPDOWN:
             cr = self.parent().edit.cursorRect()
@@ -319,10 +320,10 @@ class AutoComplete(QObject):
             popup_width += sbar_w.sizeHint().width()
             cr.setWidth(popup_width)
             self.completer.complete(cr)
-            
+
             # Mark that we're actively completing
             self._completing_active = True
-            
+
             # Select the first item in the popup
             popup = self.completer.popup()
             if popup:
@@ -369,7 +370,7 @@ class AutoComplete(QObject):
         # Close the popup first if it's visible
         if self.completing():
             self.completer.popup().hide()
-        
+
         # Clear the active completion flag
         self._completing_active = False
 
