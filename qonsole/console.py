@@ -1069,6 +1069,14 @@ class PythonConsole(BaseConsole):
         # Force repaint of prompt area
         self.pbar.update()
 
+    def clear(self) -> None:
+        """Clear the console display and reset syntax highlighting cache."""
+        super().clear()
+        # Clear the highlighter's cache to prevent highlighting sync issues
+        if hasattr(self, 'highlighter'):
+            self.highlighter._cached_doc_text = None
+            self.highlighter._line_formats = {}
+
     def _executing(self):
         """Check if the interpreter is currently executing code.
 
