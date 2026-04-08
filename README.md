@@ -6,8 +6,6 @@
 <p align="left">
   <!-- Python version badge -->
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/language-python-blue.svg" alt="Python"></a>
-  <!-- License badge -->
-  <a href="https://github.com/jacobwilliams/qonsole/blob/master/LICENSE"><img src="https://img.shields.io/github/license/jacobwilliams/qonsole.svg" alt="License"></a>
   <!-- PyPI badge -->
   <a href="https://pypi.org/project/qonsole/"><img src="https://img.shields.io/pypi/v/qonsole.svg" alt="PyPI"></a>
   <!-- conda-forge badge -->
