@@ -5,7 +5,7 @@ It supports syntax highlighting, command history, magic commands,
 and autocompletion.
 """
 
-__version__ = "2.0.0"
+__version__ = "2.0.1"
 __description__ = "Lightweight python console, easy to embed into Qt applications"
 
 

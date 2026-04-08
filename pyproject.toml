@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "qonsole"
-version = "2.0.0"
+version = "2.0.1"
 readme = "README.md"
 authors = [
     {name = "Jacob Williams", email = "jacobwilliams@users.noreply.github.com"}
