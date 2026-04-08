@@ -1,5 +1,5 @@
 <h1 align="center">
-   <img src="https://raw.githubusercontent.com/jacobwilliams/qonsole/master/media/qonsole.png" width=800">
+   <img src="https://raw.githubusercontent.com/jacobwilliams/qonsole/master/media/qonsole.png" width=400">
 </h1>
 
 <!-- Badges -->
