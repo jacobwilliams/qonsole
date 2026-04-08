@@ -1,5 +1,21 @@
+<h1 align="center">
+   <img src="https://raw.githubusercontent.com/jacobwilliams/qonsole/master/media/qonsole.png" width=800">
+</h1>
 
-![qonsole](media/qonsole.png)
+<!-- Badges -->
+<p align="left">
+  <!-- Python version badge -->
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/language-python-blue.svg" alt="Python"></a>
+  <!-- License badge -->
+  <a href="https://github.com/jacobwilliams/qonsole/blob/master/LICENSE"><img src="https://img.shields.io/github/license/jacobwilliams/qonsole.svg" alt="License"></a>
+  <!-- PyPI badge -->
+  <a href="https://pypi.org/project/qonsole/"><img src="https://img.shields.io/pypi/v/qonsole.svg" alt="PyPI"></a>
+  <!-- conda-forge badge -->
+  <a href="https://anaconda.org/conda-forge/qonsole"><img src="https://img.shields.io/conda/vn/conda-forge/qonsole.svg" alt="Conda-Forge"></a>
+  <!-- GitHub Actions CI badge -->
+  <a href="https://github.com/jacobwilliams/qonsole/actions"><img src="https://github.com/jacobwilliams/qonsole/actions/workflows/docs.yml/badge.svg" alt="GitHub CI Status"></a>
+  <a href="https://github.com/jacobwilliams/qonsole/actions"><img src="https://github.com/jacobwilliams/qonsole/actions/workflows/publish.yml/badge.svg" alt="GitHub CI Status"></a>
+</p>
 
 # qonsole
 
