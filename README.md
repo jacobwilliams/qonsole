@@ -6,9 +6,7 @@
 Qonsole is a lightweight Python console for Qt applications. It's made to
 be easy to embed in other PySide/PyQt applications and comes with some examples that
 show how this can be done. The interpreter can run in a separate thread, in
-the UI main thread or in a gevent task.
-
-Qonsole is a fork of [pyqtconsole](https://github.com/pyqtconsole/pyqtconsole).
+the UI main thread or in a gevent task. Qonsole is a fork of [pyqtconsole](https://github.com/pyqtconsole/pyqtconsole). The two diverged at pyqtconsole v1.3.0, and it is not quite a drop-in replacement, but does implement new features and has various improvements.
 
 ## Simple usage
 
