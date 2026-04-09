@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "qonsole"
-version = "2.0.1"
+version = "2.0.2"
 readme = "README.md"
 authors = [
     {name = "Jacob Williams", email = "jacobwilliams@users.noreply.github.com"}
@@ -79,6 +79,8 @@ ipython_pygments_lexers = ">=1.1.1,<2"
 pytest = ">=9.0.2,<10"
 pytest-qt = ">=4.5.0,<5"
 coverage = ">=7.13.5,<8"
+grayskull = ">=3.1.0,<4"
+conda-smithy = ">=3.59.0,<4"
 
 [tool.coverage.run]
 source = ["qonsole"]
