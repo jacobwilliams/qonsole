@@ -41,7 +41,7 @@ jobs:
 
       - name: Build documentation
         run: |
-          pixi run --manifest-path ./pyproject.toml ./build_pdoc.sh
+          pixi run --manifest-path ./pyproject.toml pdoc -o ./html --logo https://raw.githubusercontent.com/jacobwilliams/qonsole/master/media/qonsole.png --docformat google qonsole/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

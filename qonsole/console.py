@@ -48,7 +48,7 @@ class BaseConsole(QFrame):
 
     def __init__(
         self,
-        parent: Optional["QFrame"] = None,
+        parent: Optional[QFrame] = None,
         inprompt: Optional[str] = None,
         outprompt: Optional[str] = None,
         welcome_message: Optional[str] = None,
@@ -943,7 +943,7 @@ class PythonConsole(BaseConsole):
 
     def __init__(
         self,
-        parent: Optional["QFrame"] = None,
+        parent: Optional[QFrame] = None,
         locals: Optional[dict[str, Any]] = None,
         inprompt: Optional[str] = None,
         outprompt: Optional[str] = None,

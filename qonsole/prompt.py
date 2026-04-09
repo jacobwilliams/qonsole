@@ -7,11 +7,11 @@ on the left side of the console text area.
 from typing import TYPE_CHECKING, Callable
 
 from qtpy.QtCore import QRect, Qt
-from qtpy.QtGui import QPainter
+from qtpy.QtGui import QPainter, QTextBlock
 from qtpy.QtWidgets import QWidget
 
 if TYPE_CHECKING:
-    from qtpy.QtGui import QTextBlock
+    from .highlighter import PromptHighlighter
 
 
 class PromptArea(QWidget):
@@ -25,7 +25,7 @@ class PromptArea(QWidget):
         self,
         edit: QWidget,
         get_text: Callable[[int], tuple[str, bool]],
-        highlighter: object,
+        highlighter: "PromptHighlighter",
     ) -> None:
         """Initialize the prompt area widget.
 
@@ -93,7 +93,7 @@ class PromptArea(QWidget):
             self.setFixedWidth(width)
 
     def draw_block(
-        self, painter: QPainter, rect: QRect, block: "QTextBlock", first: bool
+        self, painter: QPainter, rect: QRect, block: QTextBlock, first: bool
     ) -> None:
         """Draw the prompt for a given text block.
 

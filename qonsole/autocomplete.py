@@ -4,9 +4,9 @@ Provides auto-completion dropdown support,
 using Jedi for intelligent Python code completion.
 """
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
-from qtpy.QtCore import QEvent, QObject, Qt
+from qtpy.QtCore import QCoreApplication, QEvent, QObject, Qt
 from qtpy.QtGui import QTextCursor
 from qtpy.QtWidgets import QCompleter
 
@@ -29,8 +29,7 @@ class AutoComplete(QObject):
             parent: Parent console widget.
         """
         super().__init__(parent)
-        self.completer: Optional[QCompleter] = None
-        self._last_key: Optional[int] = None
+        self.completer: QCompleter = None
         self._completing_active: bool = False
 
         parent.edit.installEventFilter(self)
@@ -73,8 +72,6 @@ class AutoComplete(QObject):
                 return True
             # For everything else (typing, backspace, Tab, etc.),
             # forward to edit widget
-            from qtpy.QtCore import QCoreApplication
-
             QCoreApplication.sendEvent(self.parent().edit, event)
             return True
 
@@ -95,7 +92,6 @@ class AutoComplete(QObject):
             True if the event was handled, False otherwise.
         """
         key = event.key()
-        self._last_key = key
 
         if key == Qt.Key_Tab:
             return self.handle_tab_key(event)
