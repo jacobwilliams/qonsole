@@ -1,7 +1,6 @@
 """Syntax highlighting for the console.
 
 Provides syntax highlighting for Python code and prompts using Pygments.
-Supports custom color schemes and formatting styles.
 """
 
 from bisect import bisect_right

@@ -6,7 +6,7 @@ import pytest
 from qtpy.QtCore import QObject
 from qtpy.QtWidgets import QPlainTextEdit
 
-from qonsole.autocomplete import COMPLETE_MODE, AutoComplete
+from qonsole.autocomplete import AutoComplete
 
 
 class TestAutoComplete:

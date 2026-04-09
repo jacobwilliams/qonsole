@@ -17,7 +17,7 @@ from qtpy.QtCore import QEvent, Qt, QThread, Slot
 from qtpy.QtGui import QClipboard, QColor, QFont, QFontMetrics, QTextCursor
 from qtpy.QtWidgets import QApplication, QFrame, QHBoxLayout, QPlainTextEdit
 
-from .autocomplete import COMPLETE_MODE, AutoComplete
+from .autocomplete import AutoComplete
 from .commandhistory import CommandHistory
 from .highlighter import (
     ErrorHighlightData,

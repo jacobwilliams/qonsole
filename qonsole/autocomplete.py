@@ -10,22 +10,8 @@ from qtpy.QtCore import QEvent, QObject, Qt
 from qtpy.QtGui import QTextCursor
 from qtpy.QtWidgets import QCompleter
 
-from .text import columnize, long_substr
-
 if TYPE_CHECKING:
     from .console import BaseConsole
-
-
-class COMPLETE_MODE:
-    """Constants for auto-completion display modes.
-
-    Attributes:
-        DROPDOWN: Show completions in a dropdown popup menu.
-        INLINE: Show completions inline below the current line.
-    """
-
-    DROPDOWN: int = 1
-    INLINE: int = 2
 
 
 class AutoComplete(QObject):
