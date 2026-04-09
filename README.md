@@ -15,7 +15,7 @@
   <a href="https://github.com/jacobwilliams/qonsole/actions"><img src="https://github.com/jacobwilliams/qonsole/actions/workflows/publish.yml/badge.svg" alt="GitHub CI Status"></a>
 </p>
 
-# qonsole
+# About
 
 Qonsole is a lightweight Python console for Qt applications. It's made to
 be easy to embed in other PySide/PyQt applications and comes with some examples that
@@ -146,5 +146,5 @@ This module depends on [QtPy](https://github.com/spyder-ide/qtpy) which provides
 Qt. The console is tested under both Qt5 and Qt6.
 
 ## Development
-
-To generate coverage information for the unit tests, run `coverage run -m pytest tests/ && coverage report -m && coverage html`
+ * [Repository at GitHub](https://github.com/jacobwilliams/vibehdf5)
+ * To generate coverage information for the unit tests, run `coverage run -m pytest tests/ && coverage report -m && coverage html`
