@@ -4,7 +4,7 @@ Provides auto-completion dropdown support,
 using Jedi for intelligent Python code completion.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from qtpy.QtCore import QCoreApplication, QEvent, QObject, Qt
 from qtpy.QtGui import QTextCursor
@@ -29,12 +29,11 @@ class AutoComplete(QObject):
             parent: Parent console widget.
         """
         super().__init__(parent)
-        self.completer: QCompleter = None
+        self.completer: Optional[QCompleter] = None
         self._completing_active: bool = False
 
         parent.edit.installEventFilter(self)
         parent.edit.textChanged.connect(self._on_text_changed)
-        self.init_completion_list([])
 
     def eventFilter(self, widget: QObject, event: QEvent) -> bool:
         """Filter events to intercept key presses for completion.
@@ -54,7 +53,11 @@ class AutoComplete(QObject):
             return False
 
         # Check if this event is from the popup
-        if self.completer and widget == self.completer.popup():
+        if (
+            self.completer is not None
+            and self.completer.popup() is not None
+            and widget == self.completer.popup()
+        ):
             key = event.key()
             # Navigation keys and selection keys stay with the popup
             if key in (
@@ -75,7 +78,7 @@ class AutoComplete(QObject):
             QCoreApplication.sendEvent(self.parent().edit, event)
             return True
 
-        # Event from edit widget
+        # Event from edit widget - only intercept special keys
         return bool(self.key_pressed_handler(event))
 
     def key_pressed_handler(self, event: QEvent) -> bool:
@@ -160,7 +163,7 @@ class AutoComplete(QObject):
         completion prefix to filter the list based on what's been typed,
         and automatically select the first matching item.
         """
-        if not self._completing_active:
+        if not self._completing_active or self.completer is None:
             return
 
         word_being_completed = self._get_word_being_completed(
@@ -226,7 +229,7 @@ class AutoComplete(QObject):
         if not words:
             return
 
-        if self.completer.popup():
+        if self.completer and self.completer.popup():
             self.completer.popup().close()
 
         self.init_completion_list(words)
@@ -262,7 +265,11 @@ class AutoComplete(QObject):
         Returns:
             True if in dropdown mode and popup is visible, False otherwise.
         """
-        return self.completer.popup() and self.completer.popup().isVisible()
+        return (
+            self.completer is not None
+            and self.completer.popup() is not None
+            and self.completer.popup().isVisible()
+        )
 
     def insert_completion(self, completion: str) -> None:
         """Insert a completion string into the editor.
