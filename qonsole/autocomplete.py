@@ -80,14 +80,13 @@ class AutoComplete(QObject):
                 Qt.Key_PageDown,
                 Qt.Key_Return,
                 Qt.Key_Enter,
-                Qt.Key_Tab,
             ):
                 return False
             # Escape to close
             if key == Qt.Key_Escape:
                 self.hide_completion_suggestions()
                 return True
-            # For everything else (typing, backspace, etc.),
+            # For everything else (typing, backspace, Tab, etc.),
             # forward to edit widget
             from qtpy.QtCore import QCoreApplication
 
