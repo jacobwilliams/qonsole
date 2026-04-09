@@ -17,7 +17,7 @@ from qtpy.QtCore import QEvent, Qt, QThread, Slot
 from qtpy.QtGui import QClipboard, QColor, QFont, QFontMetrics, QTextCursor
 from qtpy.QtWidgets import QApplication, QFrame, QHBoxLayout, QPlainTextEdit
 
-from .autocomplete import COMPLETE_MODE, AutoComplete
+from .autocomplete import AutoComplete
 from .commandhistory import CommandHistory
 from .highlighter import (
     ErrorHighlightData,
@@ -710,15 +710,6 @@ class BaseConsole(QFrame):
         elif "\n" in text:
             self._insert_prompt_text("\n" * text.count("\n"), is_output=False)
 
-    def set_auto_complete_mode(self, mode: COMPLETE_MODE) -> None:
-        """Set the auto-completion display mode.
-
-        Args:
-            mode: COMPLETE_MODE.DROPDOWN or COMPLETE_MODE.INLINE.
-        """
-        if self.auto_complete:
-            self.auto_complete.mode = mode
-
     def process_input(self, source: str) -> None:
         """Handle and execute a source snippet confirmed by the user.
 
@@ -995,7 +986,6 @@ class PythonConsole(BaseConsole):
         self.interpreter.done_signal.connect(self._finish_command)
         self.interpreter.exit_signal.connect(self.exit)
         self.interpreter.error_signal.connect(self._error_started)
-        self.set_auto_complete_mode(COMPLETE_MODE.DROPDOWN)
         self._thread: Optional[Thread] = None
 
         # Apply the background color from the Pygments style

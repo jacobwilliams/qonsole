@@ -6,7 +6,7 @@ import pytest
 from qtpy.QtCore import QObject
 from qtpy.QtWidgets import QPlainTextEdit
 
-from qonsole.autocomplete import COMPLETE_MODE, AutoComplete
+from qonsole.autocomplete import AutoComplete
 
 
 class TestAutoComplete:
@@ -42,7 +42,6 @@ class TestAutoComplete:
     def test_initialization(self, autocomplete, console):
         """Test autocomplete initializes properly."""
         assert autocomplete.completer is not None
-        assert autocomplete.mode in [COMPLETE_MODE.DROPDOWN, COMPLETE_MODE.INLINE]
 
     def test_get_word_partial(self, autocomplete):
         """Test extracting partial word."""
@@ -67,13 +66,3 @@ class TestAutoComplete:
         # Initially popup is not visible
         result = autocomplete.completing()
         assert isinstance(result, bool)
-
-    def test_completion_mode_inline(self, autocomplete):
-        """Test inline completion mode."""
-        autocomplete.mode = COMPLETE_MODE.INLINE
-        assert autocomplete.mode == COMPLETE_MODE.INLINE
-
-    def test_completion_mode_dropdown(self, autocomplete):
-        """Test dropdown completion mode."""
-        autocomplete.mode = COMPLETE_MODE.DROPDOWN
-        assert autocomplete.mode == COMPLETE_MODE.DROPDOWN

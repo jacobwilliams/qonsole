@@ -81,6 +81,7 @@ pytest-qt = ">=4.5.0,<5"
 coverage = ">=7.13.5,<8"
 grayskull = ">=3.1.0,<4"
 conda-smithy = ">=3.59.0,<4"
+pdoc = ">=16.0.0,<17"
 
 [tool.coverage.run]
 source = ["qonsole"]

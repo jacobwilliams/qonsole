@@ -1,6 +1,6 @@
 """Auto-completion functionality for the console.
 
-Provides auto-completion support with dropdown and inline modes,
+Provides auto-completion dropdown support,
 using Jedi for intelligent Python code completion.
 """
 
@@ -10,29 +10,15 @@ from qtpy.QtCore import QEvent, QObject, Qt
 from qtpy.QtGui import QTextCursor
 from qtpy.QtWidgets import QCompleter
 
-from .text import columnize, long_substr
-
 if TYPE_CHECKING:
     from .console import BaseConsole
-
-
-class COMPLETE_MODE:
-    """Constants for auto-completion display modes.
-
-    Attributes:
-        DROPDOWN: Show completions in a dropdown popup menu.
-        INLINE: Show completions inline below the current line.
-    """
-
-    DROPDOWN: int = 1
-    INLINE: int = 2
 
 
 class AutoComplete(QObject):
     """Auto-completion handler for the console.
 
-    Manages code completion using Jedi, supporting both dropdown and inline
-    completion modes. Handles Tab key for triggering completions and displays
+    Manages code completion using Jedi, supporting a dropdown
+    completion mode. Handles Tab key for triggering completions and displays
     completion suggestions.
     """
 
@@ -43,7 +29,6 @@ class AutoComplete(QObject):
             parent: Parent console widget.
         """
         super().__init__(parent)
-        self.mode: int = COMPLETE_MODE.INLINE
         self.completer: Optional[QCompleter] = None
         self._last_key: Optional[int] = None
         self._completing_active: bool = False
@@ -135,10 +120,7 @@ class AutoComplete(QObject):
 
         event.accept()
 
-        if self.mode == COMPLETE_MODE.DROPDOWN:
-            self.complete() if self.completing() else self.trigger_complete()
-        elif self.mode == COMPLETE_MODE.INLINE and self._last_key == Qt.Key_Tab:
-            self.trigger_complete()
+        self.complete() if self.completing() else self.trigger_complete()
 
         return True
 
@@ -218,17 +200,13 @@ class AutoComplete(QObject):
         self.completer.setWidget(self.parent().edit)
         self.completer.setCaseSensitivity(Qt.CaseSensitive)
         self.completer.setModelSorting(QCompleter.CaseSensitivelySortedModel)
-
-        if self.mode == COMPLETE_MODE.DROPDOWN:
-            self.completer.setCompletionMode(QCompleter.PopupCompletion)
-            self.completer.activated[str].connect(self.insert_completion)
-            popup = self.completer.popup()
-            if popup:
-                popup.installEventFilter(self)
-                popup.setFocusPolicy(Qt.NoFocus)
-                popup.setFocusProxy(self.parent().edit)
-        else:
-            self.completer.setCompletionMode(QCompleter.InlineCompletion)
+        self.completer.setCompletionMode(QCompleter.PopupCompletion)
+        self.completer.activated[str].connect(self.insert_completion)
+        popup = self.completer.popup()
+        if popup:
+            popup.installEventFilter(self)
+            popup.setFocusPolicy(Qt.NoFocus)
+            popup.setFocusProxy(self.parent().edit)
 
     def trigger_complete(self) -> None:
         """Trigger the auto-completion process.
@@ -260,33 +238,15 @@ class AutoComplete(QObject):
         if self.completer.completionCount() == 0:
             return
 
-        if self.mode == COMPLETE_MODE.DROPDOWN:
-            popup = self.completer.popup()
-            cr = self.parent().edit.cursorRect()
-            cr.setWidth(
-                popup.sizeHintForColumn(0)
-                + popup.verticalScrollBar().sizeHint().width()
-            )
-            self.completer.complete(cr)
-            self._completing_active = True
-            if popup:
-                popup.setCurrentIndex(self.completer.completionModel().index(0, 0))
-        else:
-            # For inline mode, insert common substring
-            leastcmn = long_substr(words)
-            if leastcmn:
-                edit = self.parent().edit
-                edit.blockSignals(True)
-                self.insert_completion(leastcmn)
-                edit.blockSignals(False)
-
-            if len(words) == 1:
-                return
-
-            self._completing_active = True
-            self.parent()._insert_output_text(
-                f"\n\n{columnize(words, colsep='  |  ')}\n", lf=True, keep_buffer=True
-            )
+        popup = self.completer.popup()
+        cr = self.parent().edit.cursorRect()
+        cr.setWidth(
+            popup.sizeHintForColumn(0) + popup.verticalScrollBar().sizeHint().width()
+        )
+        self.completer.complete(cr)
+        self._completing_active = True
+        if popup:
+            popup.setCurrentIndex(self.completer.completionModel().index(0, 0))
 
     def hide_completion_suggestions(self) -> bool:
         """Hide the completion suggestions popup.
@@ -306,11 +266,7 @@ class AutoComplete(QObject):
         Returns:
             True if in dropdown mode and popup is visible, False otherwise.
         """
-        return (
-            self.mode == COMPLETE_MODE.DROPDOWN
-            and self.completer.popup()
-            and self.completer.popup().isVisible()
-        )
+        return self.completer.popup() and self.completer.popup().isVisible()
 
     def insert_completion(self, completion: str) -> None:
         """Insert a completion string into the editor.
@@ -329,30 +285,13 @@ class AutoComplete(QObject):
         _buffer = self.parent().input_buffer()
         word_being_completed = self._get_word_being_completed(_buffer)
 
-        if self.mode == COMPLETE_MODE.DROPDOWN:
-            if word_being_completed:
-                cursor = self.parent()._textCursor()
-                cursor.movePosition(
-                    QTextCursor.Left, QTextCursor.KeepAnchor, len(word_being_completed)
-                )
-                cursor.removeSelectedText()
-            self.parent().insert_input_text(completion)
-        else:
-            # Inline mode: preserve prefix before the word being completed
-            _buffer_stripped = _buffer.strip()
-            prefix = (
-                _buffer_stripped[: -len(word_being_completed)]
-                if word_being_completed
-                else _buffer_stripped
+        if word_being_completed:
+            cursor = self.parent()._textCursor()
+            cursor.movePosition(
+                QTextCursor.Left, QTextCursor.KeepAnchor, len(word_being_completed)
             )
-            if not word_being_completed and _buffer.endswith(" "):
-                prefix += " "
-
-            self.parent().clear_input_buffer()
-            self.parent().insert_input_text(prefix + completion)
-
-            if len(self.parent().get_completions(prefix + completion)) == 1:
-                self.parent().insert_input_text(" ")
+            cursor.removeSelectedText()
+        self.parent().insert_input_text(completion)
 
     def complete(self) -> None:
         """Complete with the currently selected item in the popup.
@@ -360,7 +299,7 @@ class AutoComplete(QObject):
         Only applicable in dropdown mode. Inserts the selected completion
         from the popup menu.
         """
-        if self.completing() and self.mode == COMPLETE_MODE.DROPDOWN:
+        if self.completing():
             index = self.completer.popup().currentIndex()
             model = self.completer.completionModel()
             word = model.itemData(index)[0]
