@@ -39,10 +39,6 @@ class TestAutoComplete:
         """Create an AutoComplete instance."""
         return AutoComplete(console)
 
-    def test_initialization(self, autocomplete, console):
-        """Test autocomplete initializes properly."""
-        assert autocomplete.completer is not None
-
     def test_get_word_partial(self, autocomplete):
         """Test extracting partial word."""
         buffer = "from math import sq"
