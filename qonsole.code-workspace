@@ -15,7 +15,6 @@
         "recommendations": [
             "ms-python.python",
             "ms-python.vscode-pylance",
-            "ms-python.flake8",
             "charliermarsh.ruff",
             "ms-python.isort"
         ]
