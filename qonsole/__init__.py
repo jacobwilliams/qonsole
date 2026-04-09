@@ -1,4 +1,4 @@
-"""[qonsole](https://github.com/jacobwilliams/qonsole) - Lightweight python console for Qt applications.
+"""Lightweight python console for Qt applications.
 
 This module provides an embeddable Python console widget for Qt applications.
 It supports syntax highlighting, command history, magic commands,
