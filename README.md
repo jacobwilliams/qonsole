@@ -11,7 +11,7 @@
   <!-- conda-forge badge -->
   <a href="https://anaconda.org/conda-forge/qonsole"><img src="https://img.shields.io/conda/vn/conda-forge/qonsole.svg" alt="Conda-Forge"></a>
   <!-- GitHub Actions CI badge -->
-  <a href="https://github.com/jacobwilliams/qonsole/actions"><img src="https://github.com/jacobwilliams/qonsole/actions/workflows/docs.yml/badge.svg" alt="GitHub CI Status"></a>
+  <a href="https://github.com/jacobwilliams/qonsole/actions"><img src="https://github.com/jacobwilliams/qonsole/actions/workflows/tests.yml/badge.svg" alt="GitHub CI Status"></a>
   <a href="https://github.com/jacobwilliams/qonsole/actions"><img src="https://github.com/jacobwilliams/qonsole/actions/workflows/publish.yml/badge.svg" alt="GitHub CI Status"></a>
 </p>
 
