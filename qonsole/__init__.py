@@ -10,5 +10,3 @@ __description__ = "Lightweight python console, easy to embed into Qt application
 
 
 from .console import PythonConsole
-
-__all__ = ["PythonConsole"]
