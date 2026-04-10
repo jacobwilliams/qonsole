@@ -7646,7 +7646,7 @@ packages:
   timestamp: 1770223460931
 - pypi: ./
   name: qonsole
-  version: 2.0.2
+  version: 3.0.1
   sha256: eb8cbda2d741eac842e26b511fcf0bc5ef95103e3bc43bc545bb4ed5298c2489
   requires_dist:
   - qtpy
