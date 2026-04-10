@@ -1229,6 +1229,11 @@ class InputArea(QPlainTextEdit):
         """
         return self.parent().insertFromMimeData(mime_data)
 
+    def mousePressEvent(self, event):
+        """Ensure widget gets focus when clicked."""
+        self.setFocus(Qt.MouseFocusReason)
+        super().mousePressEvent(event)
+
     def contextMenuEvent(self, event: Any) -> None:
         """Show custom context menu with copy, paste, and select all.
 
