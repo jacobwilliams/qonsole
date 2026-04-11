@@ -40,6 +40,7 @@ class MagicCmds:
             "whos": self._WHOS,
             "timeit": self._TIMEIT,
             "run": self._RUN,
+            "export": self._EXPORT,
         }  # magic command name (without %) -> function(args) mapping
 
     def _PWD(self, args: Optional[str] = None) -> str:
@@ -235,6 +236,36 @@ class MagicCmds:
             return help_buffer.getvalue()
         except Exception as e:
             return f"Error getting help for '{args}': {str(e)}\n"
+
+    def _EXPORT(self, args: Optional[str] = None) -> str:
+        """Export console session as a Python script or Jupyter notebook.
+
+        Opens a file dialog to select the save location. Exports all
+        command history as executable code. If the file extension is .ipynb,
+        exports as a Jupyter notebook. Otherwise, exports as a Python script
+        with magic/shell commands (%, !) commented out.
+
+        Args:
+            args: Optional filepath to save to. If not provided, opens a file dialog.
+
+        Returns:
+            Success or error message.
+        """
+        # Check if there's any history to export
+        if not self.parent.command_history._cmd_history:
+            return "No commands to export\n"
+
+        # Call the export method
+        success = self.parent.export_as_script(filepath=args)
+
+        if success:
+            return "Session exported successfully\n"
+        elif args:
+            # If a filepath was provided but it failed
+            return "Export failed\n"
+        else:
+            # User cancelled the dialog
+            return "Export cancelled\n"
 
     def run(self, cmd: str, args: Optional[str]) -> str:
         """Execute a magic command.

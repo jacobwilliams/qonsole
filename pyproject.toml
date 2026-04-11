@@ -82,6 +82,7 @@ coverage = ">=7.13.5,<8"
 grayskull = ">=3.1.0,<4"
 conda-smithy = ">=3.59.0,<4"
 pdoc = ">=16.0.0,<17"
+ipykernel = ">=7.2.0,<8"
 
 [tool.coverage.run]
 source = ["qonsole"]
