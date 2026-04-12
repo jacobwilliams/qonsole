@@ -916,18 +916,32 @@ class BaseConsole(QFrame):
         """
         self._ctrl_d_exits = b
 
-    def clear(self) -> None:
-        """Clear the console display."""
+    def clear(self, show_prompt: bool = False) -> None:
+        """Clear the console display.
+
+        Args:
+            show_prompt: If True, display the prompt after clearing. Set to False
+                (default) when called programmatically or from magic commands where
+                prompt is shown by caller. Set to True for direct UI actions like
+                right-click menu.
+        """
         self._prompt_doc = [("", False)]
         self._prompt_pos = 0
         self._output_inserted = False
         self._more = False
-        self._current_line = -1
+        # When show_prompt=True (e.g., right-click),
+        # set to 0 and show prompt immediately
+        # When show_prompt=False (e.g., %clear magic or clear()),
+        # set to -1 so it becomes 0 after increment
+        self._current_line = 0 if show_prompt else -1
         self._ps = self.in_prompt()
         self.edit.clear()
         # Clear output tracking
         self._command_outputs = []
         self._current_command_output = []
+        # Show the prompt after clearing if requested
+        if show_prompt:
+            self._show_ps()
 
     # Abstract
 
@@ -1098,9 +1112,16 @@ class PythonConsole(BaseConsole):
         # Force repaint of prompt area
         self.pbar.update()
 
-    def clear(self) -> None:
-        """Clear the console display and reset syntax highlighting cache."""
-        super().clear()
+    def clear(self, show_prompt: bool = False) -> None:
+        """Clear the console display and reset syntax highlighting cache.
+
+        Args:
+            show_prompt: If True, display the prompt after clearing. Set to False
+                (default) when called programmatically or from magic commands where
+                prompt is shown by caller. Set to True for direct UI actions like
+                right-click menu.
+        """
+        super().clear(show_prompt=show_prompt)
         # Clear the highlighter's cache to prevent highlighting sync issues
         if hasattr(self, "highlighter"):
             self.highlighter._cached_doc_text = None
@@ -1348,5 +1369,18 @@ class InputArea(QPlainTextEdit):
             if insert_pos < len(menu.actions()) - 1:
                 menu.removeAction(paste_action)
                 menu.insertAction(menu.actions()[insert_pos], paste_action)
+
+        # Add separator and additional actions
+        menu.addSeparator()
+
+        # Add Clear Console action
+        clear_action = menu.addAction("Clear Console")
+        clear_action.triggered.connect(lambda: self.parent().clear(show_prompt=True))
+
+        # Add Export Session action (only for PythonConsole)
+        console = self.parent()
+        if hasattr(console, "export_as_script"):
+            export_action = menu.addAction("Export Session...")
+            export_action.triggered.connect(lambda: console.export_as_script())
 
         menu.exec_(event.globalPos())
