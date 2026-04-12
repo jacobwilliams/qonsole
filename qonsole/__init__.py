@@ -8,7 +8,7 @@ and autocompletion.
    :start-line: 5
 """
 
-__version__ = "3.0.2"
+__version__ = "3.1.0"
 __description__ = "Lightweight python console, easy to embed into Qt applications"
 
 
