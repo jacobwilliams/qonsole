@@ -181,7 +181,7 @@ def export_as_notebook(
         {
             "cell_type": "markdown",
             "metadata": {},
-            "source": ["# Console Session\n", "\n", "Exported from qonsole\n"],
+            "source": ["# Console Session"],
         }
     )
 
