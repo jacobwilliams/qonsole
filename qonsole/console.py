@@ -6,8 +6,6 @@ and magic commands.
 """
 
 import ctypes
-import json
-import os
 import subprocess
 import threading
 from abc import abstractmethod
@@ -19,7 +17,6 @@ from qtpy.QtCore import QEvent, Qt, QThread, Slot
 from qtpy.QtGui import QClipboard, QColor, QFont, QFontMetrics, QTextCursor
 from qtpy.QtWidgets import (
     QApplication,
-    QFileDialog,
     QFrame,
     QHBoxLayout,
     QPlainTextEdit,
@@ -27,6 +24,7 @@ from qtpy.QtWidgets import (
 
 from .autocomplete import AutoComplete
 from .commandhistory import CommandHistory
+from .export import export_session
 from .highlighter import (
     ErrorHighlightData,
     NoHighlightData,
@@ -1233,203 +1231,13 @@ class PythonConsole(BaseConsole):
         Returns:
             True if export was successful, False if cancelled or failed.
         """
-        # Get the command history
-        commands = self.command_history._cmd_history
-
-        if not commands:
-            return False
-
-        # Open file dialog if no filepath provided
-        if not filepath:
-            filepath, _ = QFileDialog.getSaveFileName(
-                self,
-                "Export Console Session",
-                "console_session.py",
-                "Python Files (*.py);;Jupyter Notebook (*.ipynb);;All Files (*)",
-            )
-
-            # User cancelled the dialog
-            if not filepath:
-                return False
-
-        # Check file extension to determine export format
-        _, ext = os.path.splitext(filepath)
-        is_notebook = ext.lower() == ".ipynb"
-
-        try:
-            if is_notebook:
-                # Export as Jupyter notebook
-                return self._export_as_notebook(filepath, commands, strip_prompts)
-            else:
-                # Export as Python script
-                return self._export_as_python_script(filepath, commands, strip_prompts)
-
-        except Exception as e:
-            print(f"Error exporting: {e}")
-            return False
-
-    def _export_as_python_script(
-        self, filepath: str, commands: list[str], strip_prompts: bool
-    ) -> bool:
-        """Export commands as a Python script file.
-
-        Args:
-            filepath: Path to save the script.
-            commands: List of commands to export.
-            strip_prompts: Whether to clean up the output.
-
-        Returns:
-            True if successful, False otherwise.
-        """
-        with open(filepath, "w", encoding="utf-8") as f:
-            # Write header comment
-            f.write("#!/usr/bin/env python\n")
-            f.write("# Console session exported from qonsole\n\n")
-
-            # Write each command
-            for cmd in commands:
-                if strip_prompts:
-                    # Skip empty commands
-                    if not cmd.strip():
-                        continue
-
-                    # Check if this is a magic or shell command
-                    stripped = cmd.lstrip()
-                    is_special = stripped.startswith("%") or stripped.startswith("!")
-
-                    if is_special:
-                        # Comment out magic and shell commands
-                        # Handle multi-line commands by commenting each line
-                        lines = cmd.split("\n")
-                        for line in lines:
-                            if line.strip():  # Only write non-empty lines
-                                f.write(f"# {line}\n")
-                        # Add blank line after special commands
-                        f.write("\n")
-                    else:
-                        # Write regular Python commands as-is
-                        f.write(cmd)
-                        # Ensure proper newline separation
-                        if not cmd.endswith("\n"):
-                            f.write("\n")
-                        # Add blank line between multi-line blocks for readability
-                        if "\n" in cmd:
-                            f.write("\n")
-                else:
-                    # Write command as-is
-                    f.write(cmd)
-                    if not cmd.endswith("\n"):
-                        f.write("\n")
-
-        return True
-
-    def _export_as_notebook(
-        self, filepath: str, commands: list[str], strip_prompts: bool
-    ) -> bool:
-        """Export commands as a Jupyter notebook (.ipynb) file.
-
-        Creates a Jupyter notebook with code cells for each command and includes
-        captured outputs (stdout, stderr, and return values) for each cell.
-
-        Args:
-            filepath: Path to save the notebook.
-            commands: List of commands to export.
-            strip_prompts: Whether to skip empty commands.
-
-        Returns:
-            True if successful, False otherwise.
-        """
-        # Create Jupyter notebook structure
-        notebook = {
-            "cells": [],
-            "metadata": {
-                "kernelspec": {
-                    "display_name": "Python 3",
-                    "language": "python",
-                    "name": "python3",
-                },
-                "language_info": {
-                    "codemirror_mode": {"name": "ipython", "version": 3},
-                    "file_extension": ".py",
-                    "mimetype": "text/x-python",
-                    "name": "python",
-                    "nbconvert_exporter": "python",
-                    "pygments_lexer": "ipython3",
-                    "version": "3.9.0",
-                },
-            },
-            "nbformat": 4,
-            "nbformat_minor": 4,
-        }
-
-        # Add a markdown cell with metadata
-        notebook["cells"].append(
-            {
-                "cell_type": "markdown",
-                "metadata": {},
-                "source": ["# Console Session\n", "\n", "Exported from qonsole\n"],
-            }
+        return export_session(
+            commands=self.command_history._cmd_history,
+            command_outputs=self._command_outputs,
+            parent=self,
+            filepath=filepath,
+            strip_prompts=strip_prompts,
         )
-
-        # Create a mapping of commands to outputs
-        output_map = {
-            cmd: (output, is_error) for cmd, output, is_error in self._command_outputs
-        }
-
-        # Convert commands to notebook cells
-        for cmd in commands:
-            if strip_prompts and not cmd.strip():
-                continue
-
-            # Create a code cell for each command
-            # Remove trailing newline for proper notebook formatting
-            source_lines = cmd.rstrip("\n").split("\n")
-            # Add newline to each line except the last one
-            source = [line + "\n" for line in source_lines[:-1]]
-            if source_lines:
-                source.append(source_lines[-1])
-
-            # Get the output for this command if available
-            outputs = []
-            if cmd in output_map:
-                output_text, is_error = output_map[cmd]
-                if output_text:
-                    # Create output structure
-                    if is_error:
-                        # Format as error output
-                        outputs.append(
-                            {
-                                "output_type": "error",
-                                "ename": "Error",
-                                "evalue": "",
-                                "traceback": output_text.split("\n"),
-                            }
-                        )
-                    else:
-                        # Format as stream output (stdout)
-                        outputs.append(
-                            {
-                                "output_type": "stream",
-                                "name": "stdout",
-                                "text": output_text,
-                            }
-                        )
-
-            notebook["cells"].append(
-                {
-                    "cell_type": "code",
-                    "execution_count": None,
-                    "metadata": {},
-                    "outputs": outputs,
-                    "source": source,
-                }
-            )
-
-        # Write the notebook file
-        with open(filepath, "w", encoding="utf-8") as f:
-            json.dump(notebook, f, indent=2, ensure_ascii=False)
-
-        return True
 
 
 class Thread(QThread):
