@@ -284,13 +284,25 @@ class PythonHighlighter(QSyntaxHighlighter):
         # Get document text
         doc_text = self.document().toPlainText()
 
-        # Retokenize if document changed
-        if doc_text != self._cached_doc_text:
+        # Retokenize if document changed or cache is invalid
+        # Additional check: verify the current block's text matches the cache
+        block_num = self.currentBlock().blockNumber()
+        cache_invalid = doc_text != self._cached_doc_text
+
+        # Also invalidate if current block text doesn't match cached version
+        if not cache_invalid and self._cached_doc_text is not None:
+            cached_lines = self._cached_doc_text.split("\n")
+            if block_num < len(cached_lines):
+                if cached_lines[block_num] != text:
+                    cache_invalid = True
+            else:
+                cache_invalid = True
+
+        if cache_invalid:
             self._cached_doc_text = doc_text
             self._line_formats = self._tokenize_document(doc_text)
 
         # Apply formatting for current line
-        block_num = self.currentBlock().blockNumber()
         if block_num in self._line_formats:
             for start, length, fmt in self._line_formats[block_num]:
                 self.setFormat(start, length, fmt)
