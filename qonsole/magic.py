@@ -94,7 +94,7 @@ class MagicCmds:
         Returns:
             Empty string.
         """
-        self.parent.clear()
+        self.parent.clear(show_prompt=False)
         return ""
 
     def _WHO(self, args: Optional[str] = None) -> str:
