@@ -55,54 +55,22 @@ class Stream(QObject):
         return data
 
     def readline(self, timeout: Optional[float] = None) -> str:
-        """Read a line from the stream, blocking until a newline is available.
+        """Read a line from the stream - not supported in qonsole.
 
-        Waits for data with a newline character to be available in the buffer.
-        If a timeout is specified and expires, returns whatever data is available.
+        The qonsole console does not support interactive input functions
+        like input() or sys.stdin.readline(). Use print() for output instead.
 
         Args:
-            timeout: Optional timeout in seconds. None means wait indefinitely.
+            timeout: Optional timeout in seconds (ignored).
 
-        Returns:
-            A string containing a line of text including the newline character,
-            or an empty string if timeout expires with no data.
+        Raises:
+            NotImplementedError: Always raised with a helpful error message.
         """
-        data = ""
-
-        try:
-            with self._line_cond:
-                first_linesep = self._buffer.find("\n")
-
-                # Is there already some lines in the buffer, write might have
-                # been called before we read !
-                while first_linesep == -1:
-                    notfied = self._line_cond.wait(timeout)
-                    first_linesep = self._buffer.find("\n")
-
-                    # We had a timeout, break !
-                    if not notfied:
-                        break
-
-                # Check if there really is something in the buffer after
-                # waiting for line_cond. There might have been a timeout, and
-                # there is still no data available
-                if first_linesep > -1:
-                    data = self._buffer[0 : first_linesep + 1]
-
-                    if len(self._buffer) > len(data):
-                        self._buffer = self._buffer[first_linesep + 1 :]
-                    else:
-                        self._buffer = ""
-
-        # Tricky RuntimeError !, wait releases the lock and waits for notify
-        # and then acquire the lock again !. There might be an exception, i.e
-        # KeyboardInterupt which interrupts the wait. The cleanup of the with
-        # statement then tries to release the lock which is not acquired,
-        # causing a RuntimeError. puh ! If its the case just try again !
-        except RuntimeError:
-            data = self.readline(timeout)
-
-        return data
+        raise NotImplementedError(
+            "Interactive input (input() or sys.stdin.readline()) is not supported.\n"
+            "The console is designed for output display and code execution, not for "
+            "prompting user input during code execution."
+        )
 
     def write(self, data: str) -> None:
         """Write data to the stream and emit write_event signal.

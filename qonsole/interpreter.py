@@ -90,7 +90,7 @@ class PythonInterpreter(QObject, InteractiveInterpreter):
         # are running. Same thing for the except hook, we don't know what the
         # user are doing in it.
         try:
-            with redirected_io(self.stdout):
+            with redirected_io(self.stdin, self.stdout):
                 for code, mode in codes:
                     if mode == "eval":
                         result = eval(code, self.locals)
@@ -235,22 +235,27 @@ def disabled_excepthook():
 
 
 @contextlib.contextmanager
-def redirected_io(stdout: "Stream"):
-    """Context manager to redirect stdout and stderr.
+def redirected_io(stdin: "Stream", stdout: "Stream"):
+    """Context manager to redirect stdin, stdout and stderr.
 
     Args:
+        stdin: Stream to redirect standard input to.
         stdout: Stream to redirect standard output and error to.
 
     Yields:
         None
     """
+    old_stdin = sys.stdin
     old_stdout = sys.stdout
     old_stderr = sys.stderr
+    sys.stdin = stdin
     sys.stdout = stdout
     sys.stderr = stdout
     try:
         yield
     finally:
+        if sys.stdin is stdin:
+            sys.stdin = old_stdin
         if sys.stdout is stdout:
             sys.stdout = old_stdout
         if sys.stderr is stdout:
