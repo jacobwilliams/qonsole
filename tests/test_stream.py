@@ -67,3 +67,14 @@ class TestStream:
         # Stream should support write operations
         stream.write("test")
         assert True  # If we got here, it's writable
+
+    def test_readline_not_supported(self, stream):
+        """Test that readline raises NotImplementedError."""
+        # readline should not be supported - qonsole doesn't support input()
+        with pytest.raises(NotImplementedError) as exc_info:
+            stream.readline()
+
+        # Verify the error message is helpful
+        error_msg = str(exc_info.value)
+        assert "not supported" in error_msg.lower()
+        assert "input()" in error_msg or "stdin" in error_msg.lower()
