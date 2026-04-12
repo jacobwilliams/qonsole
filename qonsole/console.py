@@ -929,8 +929,10 @@ class BaseConsole(QFrame):
         self._prompt_pos = 0
         self._output_inserted = False
         self._more = False
-        # When show_prompt=True (e.g., right-click), set to 0 and show prompt immediately
-        # When show_prompt=False (e.g., %clear magic or clear()), set to -1 so it becomes 0 after increment
+        # When show_prompt=True (e.g., right-click),
+        # set to 0 and show prompt immediately
+        # When show_prompt=False (e.g., %clear magic or clear()),
+        # set to -1 so it becomes 0 after increment
         self._current_line = 0 if show_prompt else -1
         self._ps = self.in_prompt()
         self.edit.clear()
