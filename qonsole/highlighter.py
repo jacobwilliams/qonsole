@@ -51,28 +51,6 @@ def _find_token_style(style: object, token_type: object) -> Optional[str]:
     return None
 
 
-def format(color: Optional[str], style: str = "") -> QTextCharFormat:
-    """Return a QTextCharFormat with the given attributes.
-
-    Args:
-        color: Color string or None. If None, no color is set.
-        style: Style string containing 'bold' and/or 'italic'. Defaults to "".
-
-    Returns:
-        QTextCharFormat configured with the specified color and style.
-    """
-    _format = QTextCharFormat()
-    if color is not None:
-        _color = QColor(color)
-        _format.setForeground(_color)
-    if "bold" in style:
-        _format.setFontWeight(QFont.Bold)
-    if "italic" in style:
-        _format.setFontItalic(True)
-
-    return _format
-
-
 def pygments_style_to_format(style_dict: Optional[str]) -> Optional[QTextCharFormat]:
     """Convert a Pygments style dictionary entry to QTextCharFormat.
 
