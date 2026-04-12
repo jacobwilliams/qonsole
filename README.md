@@ -87,6 +87,7 @@ This features provides IPython-like [magic commands](https://ipython.readthedocs
  * `%timeit` -- Time the execution of a Python statement
  * `%run` -- Execute a Python script file
  * `%clear` -- Clear the console display
+ * `%export` -- Export console session as Python script (.py) or Jupyter notebook (.ipynb)
  * `%help` -- Display help message for magic commands
 
  In addition, custom magic commands can be defined by using the `add_magic_command()` method. Example:

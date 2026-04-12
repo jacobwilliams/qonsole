@@ -15,10 +15,16 @@ from jedi import Interpreter, settings
 from pygments.styles import get_style_by_name
 from qtpy.QtCore import QEvent, Qt, QThread, Slot
 from qtpy.QtGui import QClipboard, QColor, QFont, QFontMetrics, QTextCursor
-from qtpy.QtWidgets import QApplication, QFrame, QHBoxLayout, QPlainTextEdit
+from qtpy.QtWidgets import (
+    QApplication,
+    QFrame,
+    QHBoxLayout,
+    QPlainTextEdit,
+)
 
 from .autocomplete import AutoComplete
 from .commandhistory import CommandHistory
+from .export import export_session
 from .highlighter import (
     ErrorHighlightData,
     NoHighlightData,
@@ -118,6 +124,12 @@ class BaseConsole(QFrame):
         self.stdout = Stream()
         self.stdout.write_event.connect(self._stdout_data_handler)
         self._current_output_is_error = False  # Track if current output is error
+
+        # Track outputs for each command (for notebook export)
+        # List of (command, output, is_error) tuples
+        self._command_outputs: list[tuple[str, str, bool]] = []
+        # Buffer for current command's output
+        self._current_command_output: list[str] = []
 
         # show frame around both child widgets:
         self.setFrameStyle(edit.frameStyle())
@@ -244,8 +256,19 @@ class BaseConsole(QFrame):
         self._current_output_is_error = False
 
         if result is not None:
-            self._insert_output_text(repr(result), prompt=self.out_prompt())
+            # Add repr to output buffer before inserting to console
+            result_str = repr(result)
+            self._current_command_output.append(result_str)
+            self._insert_output_text(result_str, prompt=self.out_prompt())
             self._insert_output_text("\n")
+
+        # Store the command and its output for export
+        if self._last_input:
+            output_text = "".join(self._current_command_output)
+            self._command_outputs.append((self._last_input, output_text, had_exception))
+
+        # Clear the output buffer for next command
+        self._current_command_output = []
 
         if not had_exception and self._last_input:
             self._current_line += 1
@@ -728,6 +751,10 @@ class BaseConsole(QFrame):
             SPECIAL_COMMANDS[s[0]](s[1:])
             self._more = False
             if self._last_input:
+                # Store command and output for special commands
+                output_text = "".join(self._current_command_output)
+                self._command_outputs.append((self._last_input, output_text, False))
+                self._current_command_output = []
                 self._current_line += 1
             self._show_cursor()
             self._update_ps(self._more)
@@ -762,20 +789,22 @@ class BaseConsole(QFrame):
                 output += f"[Exit code: {result.returncode}]\n"
 
             if output:
+                # Capture output for export
+                self._current_command_output.append(output)
                 # Highlight as error if command failed
                 self._insert_output_text(
                     output, prompt=self.out_prompt(), is_error=(result.returncode != 0)
                 )
                 self._insert_output_text("\n")
         except subprocess.TimeoutExpired:
-            self._insert_output_text(
-                "[Command timed out]\n", prompt=self.out_prompt(), is_error=True
-            )
+            error_msg = "[Command timed out]\n"
+            self._current_command_output.append(error_msg)
+            self._insert_output_text(error_msg, prompt=self.out_prompt(), is_error=True)
             self._insert_output_text("\n")
         except Exception as e:
-            self._insert_output_text(
-                f"[Error: {str(e)}]\n", prompt=self.out_prompt(), is_error=True
-            )
+            error_msg = f"[Error: {str(e)}]\n"
+            self._current_command_output.append(error_msg)
+            self._insert_output_text(error_msg, prompt=self.out_prompt(), is_error=True)
             self._insert_output_text("\n")
 
     def _run_magic_command(self, command: str) -> None:
@@ -788,11 +817,15 @@ class BaseConsole(QFrame):
         try:
             output = self.magic.run(magic, args)
             if output:
+                # Capture output for export
+                self._current_command_output.append(output)
                 self._insert_output_text(output, prompt=self.out_prompt())
                 self._insert_output_text("\n")
 
         except Exception as e:
-            self._insert_output_text(f"Error executing magic command: {str(e)}\n")
+            error_msg = f"Error executing magic command: {str(e)}\n"
+            self._current_command_output.append(error_msg)
+            self._insert_output_text(error_msg)
 
     def _handle_ctrl_c(self) -> None:
         """Copy text if selected, else inject keyboard interrupt if executing,
@@ -816,6 +849,9 @@ class BaseConsole(QFrame):
             self._show_ps()
 
     def _stdout_data_handler(self, data: str) -> None:
+        # Capture output for export
+        self._current_command_output.append(data)
+
         self._insert_output_text(data, is_error=self._current_output_is_error)
 
         if len(self._copy_buffer) > 0:
@@ -889,6 +925,9 @@ class BaseConsole(QFrame):
         self._current_line = -1
         self._ps = self.in_prompt()
         self.edit.clear()
+        # Clear output tracking
+        self._command_outputs = []
+        self._current_command_output = []
 
     # Abstract
 
@@ -1171,6 +1210,33 @@ class PythonConsole(BaseConsole):
         """
         return self.interpreter.exec_signal.connect(
             lambda line: spawn(self.interpreter.exec_, line)
+        )
+
+    def export_as_script(
+        self, filepath: Optional[str] = None, strip_prompts: bool = True
+    ) -> bool:
+        """Export console session as a Python script or Jupyter notebook.
+
+        Opens a file dialog to select save location if filepath is not provided.
+        If the file extension is .ipynb, exports as a Jupyter notebook with
+        code cells and captured outputs. Otherwise, exports as a Python script.
+        Magic commands (%) and shell commands (!) are exported as comments in
+        .py files, or as code cells with magic syntax in .ipynb files.
+
+        Args:
+            filepath: Optional path to save the script. If None, opens a file dialog.
+            strip_prompts: If True, removes empty lines and cleans up the output.
+                Defaults to True.
+
+        Returns:
+            True if export was successful, False if cancelled or failed.
+        """
+        return export_session(
+            commands=self.command_history._cmd_history,
+            command_outputs=self._command_outputs,
+            parent=self,
+            filepath=filepath,
+            strip_prompts=strip_prompts,
         )
 
 

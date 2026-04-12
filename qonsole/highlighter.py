@@ -206,6 +206,7 @@ class PythonHighlighter(QSyntaxHighlighter):
         # Cache tokenized document by content hash
         self._cached_doc_text: Optional[str] = None
         self._line_formats: dict[int, list[tuple[int, int, QTextCharFormat]]] = {}
+        self._doc_revision: int = -1  # Track document revision for efficiency
 
     def _build_pygments_token_formats(
         self, style_name: str
@@ -240,6 +241,7 @@ class PythonHighlighter(QSyntaxHighlighter):
             print(f"Error: Pygments style '{style_name}' not found.")
             return
         self._cached_doc_text = None  # Clear cache to force retokenization
+        self._doc_revision = -1  # Reset revision counter
         self._line_formats = {}
         self.rehighlight()  # Trigger re-highlighting of entire document
 
@@ -281,16 +283,21 @@ class PythonHighlighter(QSyntaxHighlighter):
         if not text:
             return
 
-        # Get document text
-        doc_text = self.document().toPlainText()
+        block_num = self.currentBlock().blockNumber()
 
-        # Retokenize if document changed
-        if doc_text != self._cached_doc_text:
-            self._cached_doc_text = doc_text
+        # Use document revision to efficiently detect changes
+        # Get text first, then check revision to ensure they match
+        doc_text = self.document().toPlainText()
+        current_revision = self.document().revision()
+
+        # Only retokenize if document revision changed
+        if current_revision != self._doc_revision:
             self._line_formats = self._tokenize_document(doc_text)
+            # Update cached values atomically after successful tokenization
+            self._cached_doc_text = doc_text
+            self._doc_revision = current_revision
 
         # Apply formatting for current line
-        block_num = self.currentBlock().blockNumber()
         if block_num in self._line_formats:
             for start, length, fmt in self._line_formats[block_num]:
                 self.setFormat(start, length, fmt)
