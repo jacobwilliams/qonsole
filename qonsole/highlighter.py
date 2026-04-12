@@ -329,13 +329,39 @@ class PythonHighlighter(QSyntaxHighlighter):
         if not text:
             return line_formats
 
-        lines = text.split("\n")
+        # Build text from only the blocks that should be highlighted
+        # Skip blocks with NoHighlightData or ErrorHighlightData
+        doc = self.document()
+        block = doc.begin()
+        block_map = {}  # Maps text line to block number
+        code_lines = []  # Only code that should be highlighted
+        text_line = 0
+
+        while block.isValid():
+            user_data = block.userData()
+            block_text = block.text()
+            # Skip blocks marked as no-highlight, error, or empty blocks
+            if (
+                not isinstance(user_data, (NoHighlightData, ErrorHighlightData))
+                and block_text.strip()
+            ):
+                block_map[text_line] = block.blockNumber()
+                code_lines.append(block_text)
+                text_line += 1
+            block = block.next()
+
+        # Join the code lines for tokenization
+        code_text = "\n".join(code_lines)
+        if not code_text:
+            return line_formats
+
+        lines = code_lines
         line_starts = [0]
         for line in lines[:-1]:
             line_starts.append(line_starts[-1] + len(line) + 1)
 
         position = 0
-        for token_type, token_value in lex(text, self.lexer):
+        for token_type, token_value in lex(code_text, self.lexer):
             if not token_value:
                 continue
 
@@ -368,11 +394,14 @@ class PythonHighlighter(QSyntaxHighlighter):
                         line_text, token_pos_in_line + chars_on_line
                     )
 
-                    if current_line not in line_formats:
-                        line_formats[current_line] = []
-                    line_formats[current_line].append(
-                        (utf16_start, utf16_end - utf16_start, fmt)
-                    )
+                    # Map back to actual block number
+                    block_num = block_map.get(current_line)
+                    if block_num is not None:
+                        if block_num not in line_formats:
+                            line_formats[block_num] = []
+                        line_formats[block_num].append(
+                            (utf16_start, utf16_end - utf16_start, fmt)
+                        )
 
                     chars_processed += chars_on_line
 
