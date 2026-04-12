@@ -127,6 +127,12 @@ class BaseConsole(QFrame):
         self.stdout.write_event.connect(self._stdout_data_handler)
         self._current_output_is_error = False  # Track if current output is error
 
+        # Track outputs for each command (for notebook export)
+        # List of (command, output, is_error) tuples
+        self._command_outputs: list[tuple[str, str, bool]] = []
+        # Buffer for current command's output
+        self._current_command_output: list[str] = []
+
         # show frame around both child widgets:
         self.setFrameStyle(edit.frameStyle())
         edit.setFrameStyle(QFrame.NoFrame)
@@ -252,8 +258,19 @@ class BaseConsole(QFrame):
         self._current_output_is_error = False
 
         if result is not None:
-            self._insert_output_text(repr(result), prompt=self.out_prompt())
+            # Add repr to output buffer before inserting to console
+            result_str = repr(result)
+            self._current_command_output.append(result_str)
+            self._insert_output_text(result_str, prompt=self.out_prompt())
             self._insert_output_text("\n")
+
+        # Store the command and its output for export
+        if self._last_input:
+            output_text = "".join(self._current_command_output)
+            self._command_outputs.append((self._last_input, output_text, had_exception))
+
+        # Clear the output buffer for next command
+        self._current_command_output = []
 
         if not had_exception and self._last_input:
             self._current_line += 1
@@ -736,6 +753,10 @@ class BaseConsole(QFrame):
             SPECIAL_COMMANDS[s[0]](s[1:])
             self._more = False
             if self._last_input:
+                # Store command and output for special commands
+                output_text = "".join(self._current_command_output)
+                self._command_outputs.append((self._last_input, output_text, False))
+                self._current_command_output = []
                 self._current_line += 1
             self._show_cursor()
             self._update_ps(self._more)
@@ -770,20 +791,22 @@ class BaseConsole(QFrame):
                 output += f"[Exit code: {result.returncode}]\n"
 
             if output:
+                # Capture output for export
+                self._current_command_output.append(output)
                 # Highlight as error if command failed
                 self._insert_output_text(
                     output, prompt=self.out_prompt(), is_error=(result.returncode != 0)
                 )
                 self._insert_output_text("\n")
         except subprocess.TimeoutExpired:
-            self._insert_output_text(
-                "[Command timed out]\n", prompt=self.out_prompt(), is_error=True
-            )
+            error_msg = "[Command timed out]\n"
+            self._current_command_output.append(error_msg)
+            self._insert_output_text(error_msg, prompt=self.out_prompt(), is_error=True)
             self._insert_output_text("\n")
         except Exception as e:
-            self._insert_output_text(
-                f"[Error: {str(e)}]\n", prompt=self.out_prompt(), is_error=True
-            )
+            error_msg = f"[Error: {str(e)}]\n"
+            self._current_command_output.append(error_msg)
+            self._insert_output_text(error_msg, prompt=self.out_prompt(), is_error=True)
             self._insert_output_text("\n")
 
     def _run_magic_command(self, command: str) -> None:
@@ -796,11 +819,15 @@ class BaseConsole(QFrame):
         try:
             output = self.magic.run(magic, args)
             if output:
+                # Capture output for export
+                self._current_command_output.append(output)
                 self._insert_output_text(output, prompt=self.out_prompt())
                 self._insert_output_text("\n")
 
         except Exception as e:
-            self._insert_output_text(f"Error executing magic command: {str(e)}\n")
+            error_msg = f"Error executing magic command: {str(e)}\n"
+            self._current_command_output.append(error_msg)
+            self._insert_output_text(error_msg)
 
     def _handle_ctrl_c(self) -> None:
         """Copy text if selected, else inject keyboard interrupt if executing,
@@ -824,6 +851,9 @@ class BaseConsole(QFrame):
             self._show_ps()
 
     def _stdout_data_handler(self, data: str) -> None:
+        # Capture output for export
+        self._current_command_output.append(data)
+
         self._insert_output_text(data, is_error=self._current_output_is_error)
 
         if len(self._copy_buffer) > 0:
@@ -897,6 +927,9 @@ class BaseConsole(QFrame):
         self._current_line = -1
         self._ps = self.in_prompt()
         self.edit.clear()
+        # Clear output tracking
+        self._command_outputs = []
+        self._current_command_output = []
 
     # Abstract
 
@@ -1187,10 +1220,10 @@ class PythonConsole(BaseConsole):
         """Export console session as a Python script or Jupyter notebook.
 
         Opens a file dialog to select save location if filepath is not provided.
-        If the file extension is .ipynb, exports as a Jupyter notebook.
-        Otherwise, exports as a Python script. Magic commands (%) and shell
-        commands (!) are exported as comments in .py files, or as code cells
-        with magic syntax in .ipynb files.
+        If the file extension is .ipynb, exports as a Jupyter notebook with
+        code cells and captured outputs. Otherwise, exports as a Python script.
+        Magic commands (%) and shell commands (!) are exported as comments in
+        .py files, or as code cells with magic syntax in .ipynb files.
 
         Args:
             filepath: Optional path to save the script. If None, opens a file dialog.
@@ -1229,9 +1262,7 @@ class PythonConsole(BaseConsole):
                 return self._export_as_notebook(filepath, commands, strip_prompts)
             else:
                 # Export as Python script
-                return self._export_as_python_script(
-                    filepath, commands, strip_prompts
-                )
+                return self._export_as_python_script(filepath, commands, strip_prompts)
 
         except Exception as e:
             print(f"Error exporting: {e}")
@@ -1297,6 +1328,9 @@ class PythonConsole(BaseConsole):
     ) -> bool:
         """Export commands as a Jupyter notebook (.ipynb) file.
 
+        Creates a Jupyter notebook with code cells for each command and includes
+        captured outputs (stdout, stderr, and return values) for each cell.
+
         Args:
             filepath: Path to save the notebook.
             commands: List of commands to export.
@@ -1337,6 +1371,11 @@ class PythonConsole(BaseConsole):
             }
         )
 
+        # Create a mapping of commands to outputs
+        output_map = {
+            cmd: (output, is_error) for cmd, output, is_error in self._command_outputs
+        }
+
         # Convert commands to notebook cells
         for cmd in commands:
             if strip_prompts and not cmd.strip():
@@ -1350,12 +1389,38 @@ class PythonConsole(BaseConsole):
             if source_lines:
                 source.append(source_lines[-1])
 
+            # Get the output for this command if available
+            outputs = []
+            if cmd in output_map:
+                output_text, is_error = output_map[cmd]
+                if output_text:
+                    # Create output structure
+                    if is_error:
+                        # Format as error output
+                        outputs.append(
+                            {
+                                "output_type": "error",
+                                "ename": "Error",
+                                "evalue": "",
+                                "traceback": output_text.split("\n"),
+                            }
+                        )
+                    else:
+                        # Format as stream output (stdout)
+                        outputs.append(
+                            {
+                                "output_type": "stream",
+                                "name": "stdout",
+                                "text": output_text,
+                            }
+                        )
+
             notebook["cells"].append(
                 {
                     "cell_type": "code",
                     "execution_count": None,
                     "metadata": {},
-                    "outputs": [],
+                    "outputs": outputs,
                     "source": source,
                 }
             )

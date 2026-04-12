@@ -242,8 +242,9 @@ class MagicCmds:
 
         Opens a file dialog to select the save location. Exports all
         command history as executable code. If the file extension is .ipynb,
-        exports as a Jupyter notebook. Otherwise, exports as a Python script
-        with magic/shell commands (%, !) commented out.
+        exports as a Jupyter notebook with code cells and their captured outputs.
+        Otherwise, exports as a Python script with magic/shell commands (%, !)
+        commented out.
 
         Args:
             args: Optional filepath to save to. If not provided, opens a file dialog.
