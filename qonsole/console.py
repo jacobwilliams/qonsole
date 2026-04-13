@@ -1348,6 +1348,7 @@ class InputArea(QPlainTextEdit):
 
         if paste_action:
             # Enable it and reconnect to our custom handler
+            # Icon is already set from the standard menu
             paste_action.setEnabled(True)
             # Disconnect default handler and connect ours
             paste_action.triggered.disconnect()
@@ -1357,7 +1358,7 @@ class InputArea(QPlainTextEdit):
                 )
             )
         else:
-            # Fallback: create paste action
+            # Fallback: create paste action with system icon
 
             # Find position after copy
             insert_pos = 0
@@ -1368,6 +1369,18 @@ class InputArea(QPlainTextEdit):
 
             paste_action = menu.addAction("Paste")
             paste_action.setShortcut("Ctrl+V")
+
+            # Try to get icon from a temporary standard menu
+            # This ensures we use the same icons as the system
+            temp_widget = QPlainTextEdit()
+            temp_menu = temp_widget.createStandardContextMenu()
+            for temp_action in temp_menu.actions():
+                if "paste" in temp_action.text().lower():
+                    paste_action.setIcon(temp_action.icon())
+                    break
+            temp_menu.deleteLater()
+            temp_widget.deleteLater()
+
             paste_action.triggered.connect(
                 lambda: self.parent().insertFromMimeData(
                     QApplication.clipboard().mimeData(QClipboard.Clipboard)
@@ -1396,8 +1409,6 @@ class InputArea(QPlainTextEdit):
         menu.addSeparator()
         wrap_action = menu.addAction("Toggle Word Wrap")
         wrap_action.setCheckable(True)
-        from qtpy.QtWidgets import QPlainTextEdit
-
         wrap_action.setChecked(self.lineWrapMode() == QPlainTextEdit.WidgetWidth)
         wrap_action.triggered.connect(self._toggle_word_wrap)
 
