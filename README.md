@@ -94,7 +94,7 @@ This features provides IPython-like [magic commands](https://ipython.readthedocs
 
 ```python
 def version(args=None):
-    return '3.1.0'
+    return '3.1.1'
 
 console = PythonConsole()
 console.add_magic_command("version", version)
@@ -104,7 +104,7 @@ Which can be used like so:
 
 ```
    IN [0]: %version
-           3.1.0
+           3.1.1
 ```
 
 ### Clear console
