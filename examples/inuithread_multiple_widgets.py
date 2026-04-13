@@ -40,7 +40,9 @@ if __name__ == "__main__":
     layout.addWidget(button)
 
     # Add the console
-    console = PythonConsole(pygments_style="monokai")
+    console = PythonConsole(
+        pygments_style="monokai", preamble=["import math", "import os"]
+    )
     console.push_local_ns("greet", greet)
     layout.addWidget(console)
 

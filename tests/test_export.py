@@ -450,3 +450,272 @@ class TestExportAsNotebook:
         finally:
             if os.path.exists(filepath):
                 os.unlink(filepath)
+
+
+class TestPreambleExport:
+    """Test preamble functionality in exports."""
+
+    def test_script_export_with_preamble(self):
+        """Test that preamble lines are added to script exports."""
+        commands = ["x = 1", "print(x)"]
+        preamble = ["import numpy as np", "import pandas as pd"]
+
+        with tempfile.NamedTemporaryFile(suffix=".py", delete=False, mode="w") as tmp:
+            filepath = tmp.name
+
+        try:
+            result = export_as_python_script(
+                filepath, commands, strip_prompts=True, preamble=preamble
+            )
+            assert result is True
+
+            content = Path(filepath).read_text()
+            # Check shebang is first
+            assert content.startswith("#!/usr/bin/env python\n")
+            # Check preamble section exists
+            assert "# === PREAMBLE ===" in content
+            assert "# === END PREAMBLE ===" in content
+            # Check preamble imports are present
+            assert "import numpy as np" in content
+            assert "import pandas as pd" in content
+            # Check commands are present
+            assert "x = 1" in content
+            assert "print(x)" in content
+            # Verify order: shebang, then preamble, then commands
+            shebang_pos = content.find("#!/usr/bin/env python")
+            preamble_start = content.find("# === PREAMBLE ===")
+            preamble_end = content.find("# === END PREAMBLE ===")
+            x_pos = content.find("x = 1")
+            assert shebang_pos < preamble_start < preamble_end < x_pos
+        finally:
+            if os.path.exists(filepath):
+                os.unlink(filepath)
+
+    def test_script_export_with_empty_preamble(self):
+        """Test that empty preamble list doesn't add preamble section."""
+        commands = ["x = 1"]
+        preamble = []
+
+        with tempfile.NamedTemporaryFile(suffix=".py", delete=False, mode="w") as tmp:
+            filepath = tmp.name
+
+        try:
+            result = export_as_python_script(
+                filepath, commands, strip_prompts=True, preamble=preamble
+            )
+            assert result is True
+
+            content = Path(filepath).read_text()
+            # Empty preamble should not add preamble markers
+            assert "# === PREAMBLE ===" not in content
+            assert "x = 1" in content
+        finally:
+            if os.path.exists(filepath):
+                os.unlink(filepath)
+
+    def test_script_export_with_none_preamble(self):
+        """Test that None preamble (default) works correctly."""
+        commands = ["x = 1"]
+
+        with tempfile.NamedTemporaryFile(suffix=".py", delete=False, mode="w") as tmp:
+            filepath = tmp.name
+
+        try:
+            result = export_as_python_script(
+                filepath, commands, strip_prompts=True, preamble=None
+            )
+            assert result is True
+
+            content = Path(filepath).read_text()
+            # None preamble should not add preamble markers
+            assert "# === PREAMBLE ===" not in content
+            assert "x = 1" in content
+        finally:
+            if os.path.exists(filepath):
+                os.unlink(filepath)
+
+    def test_notebook_export_with_preamble(self):
+        """Test that preamble is added as first code cell in notebooks."""
+        commands = ["x = 1", "print(x)"]
+        outputs = []
+        preamble = ["import numpy as np", "import pandas as pd\n"]
+
+        with tempfile.NamedTemporaryFile(
+            suffix=".ipynb", delete=False, mode="w"
+        ) as tmp:
+            filepath = tmp.name
+
+        try:
+            result = export_as_notebook(
+                filepath, commands, outputs, strip_prompts=True, preamble=preamble
+            )
+            assert result is True
+
+            with open(filepath) as f:
+                notebook = json.load(f)
+
+            cells = notebook["cells"]
+            # Should have: markdown header, preamble code cell, then command cells
+            assert len(cells) >= 3
+
+            # First cell is markdown header
+            assert cells[0]["cell_type"] == "markdown"
+
+            # Second cell should be preamble code cell
+            assert cells[1]["cell_type"] == "code"
+            assert cells[1]["metadata"].get("tags") == ["preamble"]
+            preamble_source = "".join(cells[1]["source"])
+            assert "import numpy as np" in preamble_source
+            assert "import pandas as pd" in preamble_source
+
+            # Remaining cells are regular code cells
+            code_cells = [c for c in cells[2:] if c["cell_type"] == "code"]
+            assert len(code_cells) == 2
+        finally:
+            if os.path.exists(filepath):
+                os.unlink(filepath)
+
+    def test_notebook_export_with_empty_preamble(self):
+        """Test that empty preamble list doesn't add preamble cell."""
+        commands = ["x = 1"]
+        outputs = []
+        preamble = []
+
+        with tempfile.NamedTemporaryFile(
+            suffix=".ipynb", delete=False, mode="w"
+        ) as tmp:
+            filepath = tmp.name
+
+        try:
+            result = export_as_notebook(
+                filepath, commands, outputs, strip_prompts=True, preamble=preamble
+            )
+            assert result is True
+
+            with open(filepath) as f:
+                notebook = json.load(f)
+
+            cells = notebook["cells"]
+            # Should have: markdown header, code cell (no preamble)
+            code_cells = [c for c in cells if c["cell_type"] == "code"]
+            # Check that none of the cells have preamble tag
+            for cell in code_cells:
+                assert cell["metadata"].get("tags") != ["preamble"]
+        finally:
+            if os.path.exists(filepath):
+                os.unlink(filepath)
+
+    def test_notebook_export_with_none_preamble(self):
+        """Test that None preamble (default) works correctly."""
+        commands = ["x = 1"]
+        outputs = []
+
+        with tempfile.NamedTemporaryFile(
+            suffix=".ipynb", delete=False, mode="w"
+        ) as tmp:
+            filepath = tmp.name
+
+        try:
+            result = export_as_notebook(
+                filepath, commands, outputs, strip_prompts=True, preamble=None
+            )
+            assert result is True
+
+            with open(filepath) as f:
+                notebook = json.load(f)
+
+            cells = notebook["cells"]
+            # Check that none of the cells have preamble tag
+            code_cells = [c for c in cells if c["cell_type"] == "code"]
+            for cell in code_cells:
+                assert cell["metadata"].get("tags") != ["preamble"]
+        finally:
+            if os.path.exists(filepath):
+                os.unlink(filepath)
+
+    def test_export_session_with_preamble_script(self):
+        """Test export_session passes preamble to script export."""
+        commands = ["x = 1"]
+        outputs = []
+        preamble = ["import math"]
+
+        with tempfile.NamedTemporaryFile(suffix=".py", delete=False, mode="w") as tmp:
+            filepath = tmp.name
+
+        try:
+            result = export_session(
+                commands, outputs, filepath=filepath, preamble=preamble
+            )
+            assert result is True
+
+            content = Path(filepath).read_text()
+            assert "# === PREAMBLE ===" in content
+            assert "import math" in content
+        finally:
+            if os.path.exists(filepath):
+                os.unlink(filepath)
+
+    def test_export_session_with_preamble_notebook(self):
+        """Test export_session passes preamble to notebook export."""
+        commands = ["x = 1"]
+        outputs = []
+        preamble = ["import math"]
+
+        with tempfile.NamedTemporaryFile(
+            suffix=".ipynb", delete=False, mode="w"
+        ) as tmp:
+            filepath = tmp.name
+
+        try:
+            result = export_session(
+                commands, outputs, filepath=filepath, preamble=preamble
+            )
+            assert result is True
+
+            with open(filepath) as f:
+                notebook = json.load(f)
+
+            # Find preamble cell
+            code_cells = [
+                c
+                for c in notebook["cells"]
+                if c["cell_type"] == "code"
+                and c["metadata"].get("tags") == ["preamble"]
+            ]
+            assert len(code_cells) == 1
+            preamble_source = "".join(code_cells[0]["source"])
+            assert "import math" in preamble_source
+        finally:
+            if os.path.exists(filepath):
+                os.unlink(filepath)
+
+    def test_preamble_with_multiline_content(self):
+        """Test preamble with multi-line content."""
+        commands = ["x = 1"]
+        preamble = [
+            "# Standard libraries\n",
+            "import math\n",
+            "import sys\n",
+            "\n",
+            "# Third-party libraries\n",
+            "import numpy as np\n",
+        ]
+
+        with tempfile.NamedTemporaryFile(suffix=".py", delete=False, mode="w") as tmp:
+            filepath = tmp.name
+
+        try:
+            result = export_as_python_script(
+                filepath, commands, strip_prompts=True, preamble=preamble
+            )
+            assert result is True
+
+            content = Path(filepath).read_text()
+            assert "# Standard libraries" in content
+            assert "import math" in content
+            assert "import sys" in content
+            assert "# Third-party libraries" in content
+            assert "import numpy as np" in content
+        finally:
+            if os.path.exists(filepath):
+                os.unlink(filepath)

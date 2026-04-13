@@ -59,6 +59,7 @@ class BaseConsole(QFrame):
         outprompt: Optional[str] = None,
         welcome_message: Optional[str] = None,
         pygments_style: Optional[str] = None,
+        preamble: Optional[list[str]] = None,
     ) -> None:
         """Initialize the base console.
 
@@ -72,6 +73,8 @@ class BaseConsole(QFrame):
                 highlighted. Defaults to None.
             pygments_style: Name of Pygments style (e.g., 'monokai', 'vim').
                 If None, uses 'default' style. Defaults to None.
+            preamble: Optional list of lines to add at the top of exported
+                scripts/notebooks (e.g., imports). Defaults to None.
         """
         super().__init__(parent)
 
@@ -163,6 +166,9 @@ class BaseConsole(QFrame):
 
         # Store welcome message to be displayed by subclass if needed
         self._welcome_message = welcome_message
+
+        # Store preamble lines for export
+        self._preamble = preamble if preamble is not None else []
 
         self._show_ps()
 
@@ -1004,6 +1010,7 @@ class PythonConsole(BaseConsole):
         outprompt: Optional[str] = None,
         welcome_message: Optional[str] = None,
         pygments_style: Optional[str] = None,
+        preamble: Optional[list[str]] = None,
     ) -> None:
         """Initialize the Python console.
 
@@ -1017,6 +1024,8 @@ class PythonConsole(BaseConsole):
                 Defaults to None.
             pygments_style: Name of Pygments style (e.g., 'monokai').
                 If None, uses 'default' style. Defaults to None.
+            preamble: Optional list of lines to add at the top of exported
+                scripts/notebooks (e.g., imports). Defaults to None.
         """
         super().__init__(
             parent,
@@ -1024,6 +1033,7 @@ class PythonConsole(BaseConsole):
             outprompt=outprompt,
             welcome_message=welcome_message,
             pygments_style=pygments_style,
+            preamble=preamble,
         )
 
         # Display welcome message before creating highlighter
@@ -1260,6 +1270,7 @@ class PythonConsole(BaseConsole):
             parent=self,
             filepath=filepath,
             strip_prompts=strip_prompts,
+            preamble=self._preamble,
         )
 
 

@@ -17,6 +17,7 @@ def export_session(
     parent: Optional[QWidget] = None,
     filepath: Optional[str] = None,
     strip_prompts: bool = True,
+    preamble: Optional[list[str]] = None,
 ) -> bool:
     """Export console session as a Python script or Jupyter notebook.
 
@@ -34,6 +35,8 @@ def export_session(
         filepath: Optional path to save the script. If None, opens a file dialog.
         strip_prompts: If True, removes empty lines and cleans up the output.
             Defaults to True.
+        preamble: Optional list of lines to add at the top of exported
+            scripts/notebooks (e.g., imports). Defaults to None.
 
     Returns:
         True if export was successful, False if cancelled or failed.
@@ -62,11 +65,11 @@ def export_session(
         if is_notebook:
             # Export as Jupyter notebook
             return export_as_notebook(
-                filepath, commands, command_outputs, strip_prompts
+                filepath, commands, command_outputs, strip_prompts, preamble
             )
         else:
             # Export as Python script
-            return export_as_python_script(filepath, commands, strip_prompts)
+            return export_as_python_script(filepath, commands, strip_prompts, preamble)
 
     except Exception as e:
         print(f"Error exporting: {e}")
@@ -74,7 +77,10 @@ def export_session(
 
 
 def export_as_python_script(
-    filepath: str, commands: list[str], strip_prompts: bool = True
+    filepath: str,
+    commands: list[str],
+    strip_prompts: bool = True,
+    preamble: Optional[list[str]] = None,
 ) -> bool:
     """Export commands as a Python script file.
 
@@ -86,6 +92,8 @@ def export_as_python_script(
         commands: List of commands to export.
         strip_prompts: Whether to clean up the output by skipping empty
             commands. Defaults to True.
+        preamble: Optional list of lines to add at the top of the script
+            after the shebang (e.g., imports). Defaults to None.
 
     Returns:
         True if successful, False otherwise.
@@ -93,6 +101,15 @@ def export_as_python_script(
     with open(filepath, "w", encoding="utf-8") as f:
         # Write header comment
         f.write("#!/usr/bin/env python\n")
+
+        # Write preamble lines if provided
+        if preamble:
+            f.write("\n# === PREAMBLE ===\n")
+            for line in preamble:
+                f.write(line)
+                if not line.endswith("\n"):
+                    f.write("\n")
+            f.write("# === END PREAMBLE ===\n\n")
 
         # Write each command
         for cmd in commands:
@@ -137,6 +154,7 @@ def export_as_notebook(
     commands: list[str],
     command_outputs: list[tuple[str, str, bool]],
     strip_prompts: bool = True,
+    preamble: Optional[list[str]] = None,
 ) -> bool:
     """Export commands as a Jupyter notebook (.ipynb) file.
 
@@ -149,6 +167,8 @@ def export_as_notebook(
         command_outputs: List of (command, output, is_error) tuples for
             associating outputs with commands.
         strip_prompts: Whether to skip empty commands. Defaults to True.
+        preamble: Optional list of lines to add as first code cell
+            (e.g., imports). Defaults to None.
 
     Returns:
         True if successful, False otherwise.
@@ -184,6 +204,26 @@ def export_as_notebook(
             "source": ["# Console Session"],
         }
     )
+
+    # Add preamble as first code cell if provided
+    if preamble:
+        preamble_source = []
+        for line in preamble:
+            # Ensure line has newline except for the last one
+            preamble_source.append(line if line.endswith("\n") else line + "\n")
+        # Remove trailing newline from last line for proper notebook formatting
+        if preamble_source:
+            preamble_source[-1] = preamble_source[-1].rstrip("\n")
+
+        notebook["cells"].append(
+            {
+                "cell_type": "code",
+                "execution_count": None,
+                "metadata": {"tags": ["preamble"]},
+                "outputs": [],
+                "source": preamble_source,
+            }
+        )
 
     # Create a mapping of commands to outputs
     output_map = {cmd: (output, is_error) for cmd, output, is_error in command_outputs}
