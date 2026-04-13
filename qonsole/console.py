@@ -543,9 +543,11 @@ class BaseConsole(QFrame):
     def _keep_cursor_in_buffer(self) -> None:
         cursor = self._textCursor()
         if cursor.anchor() < self._prompt_pos:
-            cursor.setPosition(self._prompt_pos)
+            # Move to end of input buffer
+            cursor.movePosition(QTextCursor.End)
         if cursor.position() < self._prompt_pos:
-            cursor.setPosition(self._prompt_pos, QTextCursor.KeepAnchor)
+            # Move to end of input buffer
+            cursor.movePosition(QTextCursor.End, QTextCursor.KeepAnchor)
         self._setTextCursor(cursor)
         self.ensureCursorVisible()
 
