@@ -1321,6 +1321,13 @@ class InputArea(QPlainTextEdit):
         self.setFocus(Qt.MouseFocusReason)
         super().mousePressEvent(event)
 
+    def _toggle_word_wrap(self) -> None:
+        """Toggle word wrap mode between NoWrap and WidgetWidth."""
+        if self.lineWrapMode() == QPlainTextEdit.NoWrap:
+            self.setLineWrapMode(QPlainTextEdit.WidgetWidth)
+        else:
+            self.setLineWrapMode(QPlainTextEdit.NoWrap)
+
     def contextMenuEvent(self, event: Any) -> None:
         """Show custom context menu with copy, paste, and select all.
 
@@ -1382,5 +1389,14 @@ class InputArea(QPlainTextEdit):
         if hasattr(console, "export_as_script"):
             export_action = menu.addAction("Export Session...")
             export_action.triggered.connect(lambda: console.export_as_script())
+
+        # Add Toggle Word Wrap action
+        menu.addSeparator()
+        wrap_action = menu.addAction("Toggle Word Wrap")
+        wrap_action.setCheckable(True)
+        from qtpy.QtWidgets import QPlainTextEdit
+
+        wrap_action.setChecked(self.lineWrapMode() == QPlainTextEdit.WidgetWidth)
+        wrap_action.triggered.connect(self._toggle_word_wrap)
 
         menu.exec_(event.globalPos())

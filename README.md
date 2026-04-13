@@ -141,6 +141,17 @@ console = PythonConsole(inprompt="%d >", outprompt="%d <")
 console = PythonConsole(inprompt=">>>", outprompt="<<<")
 ```
 
+### Right-click menu
+
+The console's right-click menu includes several useful items:
+
+* "Copy"
+* "Paste"
+* "Select All"
+* "Clear Console" (same as the `%clear` magic command)
+* "Export Session" (same as the `%export` magic command)
+* "Toggle Word Wrap"
+
 ## Credits
 
 This module depends on [QtPy](https://github.com/spyder-ide/qtpy) which provides a compatibility layer for
