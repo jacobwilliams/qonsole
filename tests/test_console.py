@@ -1168,3 +1168,29 @@ class TestConsole:
             assert "via_mime" in content
 
         self.bot.waitUntil(check, timeout=1000)
+
+    def test_tab_insert_spaces_on_empty_line(self):
+        """Test that Tab inserts 4 spaces on empty line instead of triggering autocomplete."""
+        # Press Tab on empty line
+        self.bot.keyClick(self.console.edit, Qt.Key.Key_Tab)
+
+        def check():
+            content = self.console.input_buffer()
+            # Should have inserted 4 spaces
+            assert content == "    " or content.startswith("    ")
+
+        self.bot.waitUntil(check, timeout=1000)
+
+    def test_tab_triggers_autocomplete_with_text(self):
+        """Test that Tab triggers autocomplete when there's text on the line."""
+        # Type some text
+        self.console.edit.insertPlainText("pri")
+
+        # Press Tab - should trigger autocomplete
+        self.bot.keyClick(self.console.edit, Qt.Key.Key_Tab)
+
+        def check():
+            # Autocomplete should be active (completer should exist)
+            assert self.console.auto_complete.completer is not None
+
+        self.bot.waitUntil(check, timeout=1000)
