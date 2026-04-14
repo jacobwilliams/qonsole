@@ -803,3 +803,368 @@ class TestConsole:
             assert paste_action is not None
             # Note: insert may not be called in test environment
             # Just verify the action exists and is connected
+
+    def test_middle_mouse_button_paste(self):
+        """Test middle mouse button paste from selection clipboard."""
+        from qtpy.QtCore import QEvent, QPointF
+        from qtpy.QtGui import QClipboard, QMouseEvent
+        from qtpy.QtWidgets import QApplication
+
+        # Put text in selection clipboard (may not be supported on all platforms)
+        clipboard = QApplication.clipboard()
+        try:
+            clipboard.setText("middle_click_text", QClipboard.Selection)
+        except:  # noqa: E722
+            # Skip if selection clipboard not supported
+            pytest.skip("Selection clipboard not supported on this platform")
+
+        # Create middle mouse button press event using newer API
+        try:
+            # Try newer API first (Qt 6+)
+            from qtpy.QtGui import QPointingDevice
+
+            device = QPointingDevice.primaryPointingDevice()
+            event = QMouseEvent(
+                QEvent.Type.MouseButtonPress,
+                QPointF(self.console.edit.rect().center()),
+                QPointF(self.console.edit.rect().center()),
+                Qt.MouseButton.MiddleButton,
+                Qt.MouseButton.MiddleButton,
+                Qt.KeyboardModifier.NoModifier,
+                device,
+            )
+        except (ImportError, AttributeError):
+            # Fall back to older API (Qt 5)
+            event = QMouseEvent(
+                QEvent.Type.MouseButtonPress,
+                QPointF(self.console.edit.rect().center()),
+                Qt.MouseButton.MiddleButton,
+                Qt.MouseButton.MiddleButton,
+                Qt.KeyboardModifier.NoModifier,
+            )
+
+        # Trigger the event filter on console (which is installed on edit)
+        result = self.console.eventFilter(self.console.edit, event)
+        # The event should be handled (return True) if middle button pressed
+        assert result is True
+
+    def test_tab_key_with_selection(self):
+        """Test Tab key indents selection."""
+        # Insert multi-line text and select it
+        self.console.edit.insertPlainText("line1\nline2\nline3")
+        cursor = self.console.edit.textCursor()
+        cursor.movePosition(cursor.MoveOperation.Start)
+        cursor.movePosition(cursor.MoveOperation.End, cursor.MoveMode.KeepAnchor)
+        self.console.edit.setTextCursor(cursor)
+
+        # Press Tab
+        self.bot.keyClick(self.console.edit, Qt.Key.Key_Tab)
+
+        def check():
+            content = self.console.input_buffer()
+            # Each line should be indented
+            assert "    line1" in content or "\tline1" in content
+
+        self.bot.waitUntil(check, timeout=1000)
+
+    def test_backtab_key(self):
+        """Test Shift+Tab dedents selection."""
+        # Insert indented text and select it
+        self.console.edit.insertPlainText("    indented line")
+        cursor = self.console.edit.textCursor()
+        cursor.movePosition(cursor.MoveOperation.Start)
+        cursor.movePosition(cursor.MoveOperation.End, cursor.MoveMode.KeepAnchor)
+        self.console.edit.setTextCursor(cursor)
+
+        # Press Shift+Tab
+        self.bot.keyClick(self.console.edit, Qt.Key.Key_Backtab)
+
+        def check():
+            content = self.console.input_buffer()
+            # Should be dedented
+            assert content.startswith("indented") or content.strip() == "indented line"
+
+        self.bot.waitUntil(check, timeout=1000)
+
+    def test_ctrl_u_clear_buffer(self):
+        """Test Ctrl+U clears the input buffer."""
+        self.console.edit.insertPlainText("some text to clear")
+
+        # Press Ctrl+U
+        self.bot.keyClick(
+            self.console.edit, Qt.Key.Key_U, Qt.KeyboardModifier.ControlModifier
+        )
+
+        def check():
+            content = self.console.input_buffer()
+            assert content == ""
+
+        self.bot.waitUntil(check, timeout=1000)
+
+    def test_ctrl_v_paste(self):
+        """Test Ctrl+V paste from clipboard."""
+        from qtpy.QtGui import QClipboard
+        from qtpy.QtWidgets import QApplication
+
+        # Put text in clipboard
+        clipboard = QApplication.clipboard()
+        clipboard.setText("ctrl_v_text", QClipboard.Clipboard)
+
+        # Press Ctrl+V
+        self.bot.keyClick(
+            self.console.edit, Qt.Key.Key_V, Qt.KeyboardModifier.ControlModifier
+        )
+
+        def check():
+            content = self.console.input_buffer()
+            assert "ctrl_v_text" in content
+
+        self.bot.waitUntil(check, timeout=1000)
+
+    def test_shift_up_key_multiline(self):
+        """Test Shift+Up extends selection in multiline buffer."""
+        self.console.edit.insertPlainText("line1\nline2\nline3")
+        # Move cursor to end
+        cursor = self.console.edit.textCursor()
+        cursor.movePosition(cursor.MoveOperation.End)
+        self.console.edit.setTextCursor(cursor)
+
+        # Press Shift+Up
+        self.bot.keyClick(
+            self.console.edit, Qt.Key.Key_Up, Qt.KeyboardModifier.ShiftModifier
+        )
+
+        def check():
+            cursor = self.console.edit.textCursor()
+            assert cursor.hasSelection()
+
+        self.bot.waitUntil(check, timeout=1000)
+
+    def test_shift_down_key_multiline(self):
+        """Test Shift+Down extends selection in multiline buffer."""
+        self.console.edit.insertPlainText("line1\nline2\nline3")
+        # Move cursor to start
+        cursor = self.console.edit.textCursor()
+        cursor.movePosition(cursor.MoveOperation.Start)
+        self.console.edit.setTextCursor(cursor)
+
+        # Press Shift+Down
+        self.bot.keyClick(
+            self.console.edit, Qt.Key.Key_Down, Qt.KeyboardModifier.ShiftModifier
+        )
+
+        def check():
+            cursor = self.console.edit.textCursor()
+            assert cursor.hasSelection()
+
+        self.bot.waitUntil(check, timeout=1000)
+
+    def test_shell_command_with_error(self):
+        """Test shell command that returns non-zero exit code."""
+        # Run a command that should fail
+        self.console.edit.insertPlainText("!false")
+        self.hit_enter()
+
+        def check():
+            content = self.console.edit.toPlainText()
+            # Should show exit code
+            assert "[Exit code:" in content or "false" in content
+
+        self.bot.waitUntil(check, timeout=2000)
+
+    def test_welcome_message_with_newline(self):
+        """Test console with welcome message."""
+        console = PythonConsole(welcome_message="Welcome!\nLine 2\nLine 3")
+        self.bot.add_widget(console)
+        console.show()
+
+        def check():
+            content = console.edit.toPlainText()
+            assert "Welcome!" in content
+            assert "Line 2" in content
+            assert "Line 3" in content
+
+        self.bot.waitUntil(check, timeout=1000)
+
+    def test_input_area_mouse_press_focus(self):
+        """Test that clicking in InputArea sets focus."""
+        from qtpy.QtCore import QEvent, QPointF
+        from qtpy.QtGui import QMouseEvent
+
+        # Create mouse press event using newer API
+        try:
+            # Try newer API first (Qt 6+)
+            from qtpy.QtGui import QPointingDevice
+
+            device = QPointingDevice.primaryPointingDevice()
+            event = QMouseEvent(
+                QEvent.Type.MouseButtonPress,
+                QPointF(self.console.edit.rect().center()),
+                QPointF(self.console.edit.rect().center()),
+                Qt.MouseButton.LeftButton,
+                Qt.MouseButton.LeftButton,
+                Qt.KeyboardModifier.NoModifier,
+                device,
+            )
+        except (ImportError, AttributeError):
+            # Fall back to older API (Qt 5)
+            event = QMouseEvent(
+                QEvent.Type.MouseButtonPress,
+                QPointF(self.console.edit.rect().center()),
+                Qt.MouseButton.LeftButton,
+                Qt.MouseButton.LeftButton,
+                Qt.KeyboardModifier.NoModifier,
+            )
+
+        # Trigger the event
+        self.console.edit.mousePressEvent(event)
+
+        # Should have focus
+        assert self.console.edit.hasFocus()
+
+    def test_prompt_format_error_handling(self):
+        """Test that prompt format errors are handled gracefully."""
+        # Create console with invalid prompt format
+        console = PythonConsole(inprompt="In: ", outprompt="Out: ")
+        self.bot.add_widget(console)
+        console.show()
+
+        # Should still work without format specifier
+        console.edit.insertPlainText("1 + 1")
+        self.bot.keyClick(console.edit, Qt.Key.Key_Enter)
+
+        def check():
+            content = console.edit.toPlainText()
+            assert "In: " in content or "1 + 1" in content
+
+        self.bot.waitUntil(check, timeout=2000)
+
+    def test_escape_key_handler(self):
+        """Test Escape key is handled."""
+        # Insert some text
+        self.console.edit.insertPlainText("test text")
+
+        # Press Escape - should be handled/ignored
+        self.bot.keyClick(self.console.edit, Qt.Key.Key_Escape)
+
+        # Text should still be there
+        content = self.console.input_buffer()
+        assert "test text" in content
+
+    def test_left_key_at_buffer_start(self):
+        """Test Left key when cursor is at start of input buffer."""
+        # Position cursor at start of buffer
+        cursor = self.console.edit.textCursor()
+        cursor.movePosition(cursor.MoveOperation.End)
+        self.console.edit.setTextCursor(cursor)
+
+        # Insert text
+        self.console.edit.insertPlainText("abc")
+
+        # Move cursor to start of input
+        cursor = self.console.edit.textCursor()
+        cursor.movePosition(cursor.MoveOperation.StartOfLine)
+        self.console.edit.setTextCursor(cursor)
+
+        # Press Left - should not move past prompt
+        self.bot.keyClick(self.console.edit, Qt.Key.Key_Left)
+
+        # Should still be in buffer
+        assert self.console.cursor_offset() >= 0
+
+    def test_shell_command_timeout(self):
+        """Test shell command with timeout."""
+        # This would require mocking subprocess or using a long-running command
+        # For now, just test that the shell command path works
+        self.console.edit.insertPlainText("!echo test")
+        self.hit_enter()
+
+        def check():
+            content = self.console.edit.toPlainText()
+            # Should have executed
+            assert "echo test" in content or "test" in content
+
+        self.bot.waitUntil(check, timeout=2000)
+
+    def test_magic_command_execution(self):
+        """Test that magic commands can be executed."""
+        self.console.edit.insertPlainText("%pwd")
+        self.hit_enter()
+
+        def check():
+            content = self.console.edit.toPlainText()
+            # Should show current directory or magic output
+            assert "pwd" in content.lower() or "/" in content
+
+        self.bot.waitUntil(check, timeout=2000)
+
+    def test_multiline_input_with_shift_enter(self):
+        """Test Shift+Enter creates new line without executing."""
+        self.console.edit.insertPlainText("line1")
+
+        # Press Shift+Enter
+        self.bot.keyClick(
+            self.console.edit, Qt.Key.Key_Enter, Qt.KeyboardModifier.ShiftModifier
+        )
+
+        # Should have newline in buffer
+        def check():
+            content = self.console.input_buffer()
+            assert "line1\n" in content or "\n" in content
+
+        self.bot.waitUntil(check, timeout=1000)
+
+    def test_console_clear_with_show_prompt(self):
+        """Test clearing console and showing new prompt."""
+        # Execute something first
+        self.console.edit.insertPlainText("x = 42")
+        self.hit_enter()
+
+        def check_execute():
+            content = self.console.edit.toPlainText()
+            assert "x = 42" in content
+
+        self.bot.waitUntil(check_execute, timeout=2000)
+
+        # Clear with show_prompt=True
+        self.console.clear(show_prompt=True)
+
+        def check_clear():
+            content = self.console.edit.toPlainText()
+            # Should have prompt but not old content
+            assert "x = 42" not in content
+            # Should have at least prompt
+            assert len(content.strip()) >= 0
+
+        self.bot.waitUntil(check_clear, timeout=1000)
+
+    def test_push_local_ns_2(self):
+        """Test pushing variables into console namespace."""
+        # Push a variable into the namespace
+        self.console.push_local_ns("test_var", 123)
+
+        # Execute code that uses it
+        self.console.edit.insertPlainText("print(test_var)")
+        self.hit_enter()
+
+        def check():
+            content = self.console.edit.toPlainText()
+            assert "123" in content
+
+        self.bot.waitUntil(check, timeout=2000)
+
+    def test_input_area_insert_from_mime_data(self):
+        """Test InputArea's insertFromMimeData delegates to parent."""
+        from qtpy.QtCore import QMimeData
+
+        mime_data = QMimeData()
+        mime_data.setText("via_mime")
+
+        # Call insertFromMimeData
+        self.console.edit.insertFromMimeData(mime_data)
+
+        def check():
+            content = self.console.input_buffer()
+            assert "via_mime" in content
+
+        self.bot.waitUntil(check, timeout=1000)

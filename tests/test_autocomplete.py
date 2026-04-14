@@ -421,3 +421,37 @@ class TestAutoComplete:
         autocomplete.show_completion_suggestions("st")
 
         assert autocomplete.completer is not None
+
+    def test_event_filter_popup_typing_forwarded(self, autocomplete, console, qtbot):
+        """Test that typing in popup is forwarded to edit widget."""
+        # Setup completion with popup
+        console.edit.setPlainText("sq")
+        autocomplete.show_completion_suggestions("sq")
+
+        if autocomplete.completer and autocomplete.completer.popup():
+            popup = autocomplete.completer.popup()
+
+            # Test typing a character - should be forwarded to edit widget
+            event = QKeyEvent(
+                QEvent.Type.KeyPress, Qt.Key.Key_A, Qt.KeyboardModifier.NoModifier, "a"
+            )
+            result = autocomplete.eventFilter(popup, event)
+            # Should return True (handled by forwarding)
+            assert result is True
+
+    def test_show_completion_activates_invisible_popup(
+        self, autocomplete, console, qtbot
+    ):
+        """Test that show_completion activates popup even if initially not visible."""
+        # Create completion suggestions
+        console.edit.setPlainText("sq")
+        words = ["sqrt", "square", "squid"]
+
+        # Initialize but don't show yet
+        autocomplete.init_completion_list(words)
+
+        # Now show the suggestions with popup not visible
+        autocomplete.show_completion_suggestions("sq")
+
+        if autocomplete.completer:
+            assert autocomplete._completing_active

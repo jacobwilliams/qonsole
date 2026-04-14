@@ -78,3 +78,16 @@ class TestStream:
         error_msg = str(exc_info.value)
         assert "not supported" in error_msg.lower()
         assert "input()" in error_msg or "stdin" in error_msg.lower()
+
+    def test_close(self, stream, receiver, qtbot):
+        """Test closing the stream emits close_event signal."""
+        close_received = []
+
+        def on_close():
+            close_received.append(True)
+
+        stream.close_event.connect(on_close)
+        stream.close()
+
+        qtbot.wait(50)
+        assert len(close_received) == 1
