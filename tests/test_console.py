@@ -1170,7 +1170,8 @@ class TestConsole:
         self.bot.waitUntil(check, timeout=1000)
 
     def test_tab_insert_spaces_on_empty_line(self):
-        """Test that Tab inserts 4 spaces on empty line instead of triggering autocomplete."""
+        """Test that Tab inserts 4 spaces on empty line
+        instead of triggering autocomplete."""
         # Press Tab on empty line
         self.bot.keyClick(self.console.edit, Qt.Key.Key_Tab)
 
