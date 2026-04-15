@@ -58,3 +58,53 @@ class TestCommandHistory:
 
         history.dec("")
         assert history._idx == 1  # Should be at cmd2
+
+    def test_inc_forward_navigation(self, history, console):
+        """Test inc() moves forward in history."""
+        history.add("cmd1")
+        history.add("cmd2")
+        history.add("cmd3")
+
+        # Navigate backward first
+        history.dec("")
+        history.dec("")
+        assert history._idx == 1
+
+        # Now navigate forward with inc()
+        history.inc()
+        assert history._idx == 2
+
+        # Should not go beyond the end
+        history.inc()
+        assert history._idx == 3  # len(history)
+
+    def test_current_returns_pending_at_end(self, history):
+        """Test current() returns pending input when at end of history."""
+        history.add("cmd1")
+        history.add("cmd2")
+
+        # Navigate to end (idx == len)
+        assert history._idx == 2  # At end
+        history.dec("my pending input")
+        assert history._idx == 1
+
+        # Navigate back to end
+        history.inc()
+        assert history._idx == 2
+
+        # Should return pending input
+        result = history.current()
+        assert result == "my pending input"
+
+    def test_current_returns_history_item(self, history):
+        """Test current() returns history item when not at end."""
+        history.add("cmd1")
+        history.add("cmd2")
+
+        # Navigate backward
+        history.dec("")
+        assert history._idx == 1
+
+        # Should return cmd2
+        result = history.current()
+        assert result == "cmd2"

@@ -719,3 +719,31 @@ class TestPreambleExport:
         finally:
             if os.path.exists(filepath):
                 os.unlink(filepath)
+
+    def test_notebook_multiline_comment_with_mixed_content(self):
+        """Test multi-line comments with non-comment lines are handled."""
+        # This tests the edge case where a command has multiple lines
+        # and some lines start with # while others don't (e.g., a string)
+        commands = [
+            "# Comment line 1\nsome text without hash",
+            "x = 1",
+        ]
+        outputs = []
+
+        with tempfile.NamedTemporaryFile(
+            suffix=".ipynb", delete=False, mode="w"
+        ) as tmp:
+            filepath = tmp.name
+
+        try:
+            result = export_as_notebook(filepath, commands, outputs)
+            assert result is True
+
+            with open(filepath) as f:
+                notebook = json.load(f)
+
+            # Should successfully create the notebook
+            assert "cells" in notebook
+        finally:
+            if os.path.exists(filepath):
+                os.unlink(filepath)

@@ -29,6 +29,10 @@ class TestAutoComplete:
             def input_buffer(self):
                 return self.edit.toPlainText()
 
+            def cursor_offset(self):
+                cursor = self.edit.textCursor()
+                return cursor.position() - self._prompt_pos
+
             def clear_input_buffer(self):
                 self.edit.clear()
 
@@ -37,6 +41,10 @@ class TestAutoComplete:
 
             def _textCursor(self):
                 return self.edit.textCursor()
+
+            def _get_line_until_cursor(self):
+                """Get current line of input buffer up to cursor position."""
+                return self.input_buffer()[: self.cursor_offset()].rsplit("\n", 1)[-1]
 
             def get_completions(self, buffer):
                 # Return some sample completions
@@ -180,6 +188,10 @@ class TestAutoComplete:
     def test_handle_tab_key_trigger(self, autocomplete, console):
         """Test Tab key triggering completion."""
         console.edit.setPlainText("sq")
+        # Move cursor to end so there's text before cursor
+        cursor = console.edit.textCursor()
+        cursor.movePosition(cursor.MoveOperation.End)
+        console.edit.setTextCursor(cursor)
 
         event = QKeyEvent(
             QEvent.Type.KeyPress, Qt.Key.Key_Tab, Qt.KeyboardModifier.NoModifier
@@ -250,14 +262,30 @@ class TestAutoComplete:
             # Text should be updated
             assert autocomplete._completing_active is False
 
-    def test_key_pressed_handler_tab(self, autocomplete):
+    def test_key_pressed_handler_tab(self, autocomplete, console):
         """Test key handler for Tab key."""
+        # Add some text so autocomplete should trigger
+        console.edit.setPlainText("pr")
+        cursor = console.edit.textCursor()
+        cursor.movePosition(cursor.MoveOperation.End)
+        console.edit.setTextCursor(cursor)
+
         event = QKeyEvent(
             QEvent.Type.KeyPress, Qt.Key.Key_Tab, Qt.KeyboardModifier.NoModifier
         )
         result = autocomplete.key_pressed_handler(event)
 
         assert result is True
+
+    def test_key_pressed_handler_tab_empty(self, autocomplete):
+        """Test key handler for Tab key on empty line."""
+        # No text - Tab should not trigger autocomplete
+        event = QKeyEvent(
+            QEvent.Type.KeyPress, Qt.Key.Key_Tab, Qt.KeyboardModifier.NoModifier
+        )
+        result = autocomplete.key_pressed_handler(event)
+
+        assert result is False
 
     def test_key_pressed_handler_return(self, autocomplete):
         """Test key handler for Return key."""
@@ -321,6 +349,12 @@ class TestAutoComplete:
 
     def test_event_filter_from_edit_widget(self, autocomplete, console):
         """Test event filter from edit widget."""
+        # Add text so autocomplete should trigger
+        console.edit.setPlainText("te")
+        cursor = console.edit.textCursor()
+        cursor.movePosition(cursor.MoveOperation.End)
+        console.edit.setTextCursor(cursor)
+
         event = QKeyEvent(
             QEvent.Type.KeyPress, Qt.Key.Key_Tab, Qt.KeyboardModifier.NoModifier
         )
@@ -328,6 +362,17 @@ class TestAutoComplete:
 
         # Tab key should be handled
         assert result is True
+
+    def test_event_filter_from_edit_widget_empty(self, autocomplete, console):
+        """Test event filter from edit widget with empty line."""
+        # No text - Tab should not trigger autocomplete
+        event = QKeyEvent(
+            QEvent.Type.KeyPress, Qt.Key.Key_Tab, Qt.KeyboardModifier.NoModifier
+        )
+        result = autocomplete.eventFilter(console.edit, event)
+
+        # Tab key should NOT be handled on empty line
+        assert result is False
 
     def test_on_text_changed_not_completing(self, autocomplete):
         """Test text changed when not completing."""
@@ -421,3 +466,37 @@ class TestAutoComplete:
         autocomplete.show_completion_suggestions("st")
 
         assert autocomplete.completer is not None
+
+    def test_event_filter_popup_typing_forwarded(self, autocomplete, console, qtbot):
+        """Test that typing in popup is forwarded to edit widget."""
+        # Setup completion with popup
+        console.edit.setPlainText("sq")
+        autocomplete.show_completion_suggestions("sq")
+
+        if autocomplete.completer and autocomplete.completer.popup():
+            popup = autocomplete.completer.popup()
+
+            # Test typing a character - should be forwarded to edit widget
+            event = QKeyEvent(
+                QEvent.Type.KeyPress, Qt.Key.Key_A, Qt.KeyboardModifier.NoModifier, "a"
+            )
+            result = autocomplete.eventFilter(popup, event)
+            # Should return True (handled by forwarding)
+            assert result is True
+
+    def test_show_completion_activates_invisible_popup(
+        self, autocomplete, console, qtbot
+    ):
+        """Test that show_completion activates popup even if initially not visible."""
+        # Create completion suggestions
+        console.edit.setPlainText("sq")
+        words = ["sqrt", "square", "squid"]
+
+        # Initialize but don't show yet
+        autocomplete.init_completion_list(words)
+
+        # Now show the suggestions with popup not visible
+        autocomplete.show_completion_suggestions("sq")
+
+        if autocomplete.completer:
+            assert autocomplete._completing_active

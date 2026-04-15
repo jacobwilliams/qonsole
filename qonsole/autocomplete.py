@@ -117,6 +117,12 @@ class AutoComplete(QObject):
         if self.parent()._textCursor().hasSelection():
             return False
 
+        # If the current line is empty or only whitespace, don't trigger autocomplete
+        # Let the console's Tab handler insert spaces instead
+        line_until_cursor = self.parent()._get_line_until_cursor()
+        if not line_until_cursor.strip():
+            return False
+
         event.accept()
 
         self.complete() if self.completing() else self.trigger_complete()
