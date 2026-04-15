@@ -13,6 +13,8 @@
   <!-- GitHub Actions CI badge -->
   <a href="https://github.com/jacobwilliams/qonsole/actions"><img src="https://github.com/jacobwilliams/qonsole/actions/workflows/tests.yml/badge.svg" alt="GitHub CI Status"></a>
   <a href="https://github.com/jacobwilliams/qonsole/actions"><img src="https://github.com/jacobwilliams/qonsole/actions/workflows/publish.yml/badge.svg" alt="GitHub CI Status"></a>
+  <!-- Codecov badge -->
+  <a href="https://codecov.io/gh/jacobwilliams/qonsole"><img src="https://codecov.io/gh/jacobwilliams/qonsole/branch/master/graph/badge.svg" alt="codecov"></a>
 </p>
 
 # About
