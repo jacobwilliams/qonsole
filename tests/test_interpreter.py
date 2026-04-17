@@ -73,6 +73,7 @@ class TestPythonInterpreter:
             compile("def bad syntax(", "<test>", "exec")
         except SyntaxError:
             import sys
+
             sys.last_type, sys.last_value, sys.last_traceback = sys.exc_info()
             interpreter.showsyntaxerror("<test>")
 
