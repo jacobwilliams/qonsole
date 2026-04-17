@@ -2,7 +2,7 @@ from collections.abc import Generator
 
 import pytest
 from pytestqt.qtbot import QtBot
-from qtpy.QtCore import Qt, QEvent
+from qtpy.QtCore import QEvent, Qt
 from qtpy.QtGui import QClipboard, QTextCursor
 from qtpy.QtWidgets import QApplication
 
@@ -1221,9 +1221,10 @@ class TestConsole:
         prompt = console.in_prompt()
         assert prompt == ">>> "
 
-    def test_middle_mouse_button_paste(self):
+    def test_middle_mouse_button_paste_2(self):
         """Test middle mouse button paste (X11 selection)."""
         import sys
+
         from qtpy.QtCore import QMimeData, QPoint
         from qtpy.QtGui import QMouseEvent
 
@@ -1285,6 +1286,7 @@ class TestConsole:
     def test_ctrl_c_handled_while_executing(self):
         """Test that Ctrl+C is handled even while code is executing."""
         import time
+
         from qtpy.QtGui import QKeyEvent
 
         # Start a command that will take some time
@@ -1534,7 +1536,6 @@ class TestConsole:
 
     def test_word_wrap_toggle(self):
         """Test toggling word wrap mode."""
-        from qtpy.QtWidgets import QPlainTextEdit
 
         # Initial state
         initial_mode = self.console.edit.lineWrapMode()
@@ -1585,7 +1586,7 @@ class TestConsole:
     def test_pygments_style_with_exception(self):
         """Test set_pygments_style handles exceptions gracefully."""
         # Try to set an invalid style (should handle exception)
-        try:
+        try:  # noqa: SIM105
             self.console.set_pygments_style("nonexistent_invalid_style_12345")
         except Exception:
             # Should not raise, but if it does, that's also acceptable
@@ -1617,13 +1618,12 @@ class TestConsole:
     def test_context_menu_toggle_word_wrap(self):
         """Test context menu word wrap toggle action."""
         from qtpy.QtCore import QPoint
-        from qtpy.QtWidgets import QPlainTextEdit
 
         # Get initial wrap mode
         initial_mode = self.console.edit.lineWrapMode()
 
         # Create context menu
-        event = type(
+        type(
             "Event",
             (),
             {"globalPos": lambda: QPoint(100, 100), "pos": lambda: QPoint(50, 50)},
@@ -1734,7 +1734,7 @@ class TestConsole:
         )
 
         # Should be handled as text insertion
-        result = self.console._filter_keyPressEvent(event)
+        self.console._filter_keyPressEvent(event)
 
         # Should insert the text
         def check():
@@ -1786,8 +1786,8 @@ class TestConsole:
 
     def test_input_area_mouse_press_sets_focus(self):
         """Test InputArea.mousePressEvent sets focus."""
-        from qtpy.QtGui import QMouseEvent
         from qtpy.QtCore import QPoint
+        from qtpy.QtGui import QMouseEvent
 
         # Create mouse press event
         event = QMouseEvent(
@@ -1832,15 +1832,14 @@ class TestConsole:
 
     def test_context_menu_export_action_present(self):
         """Test that context menu has export action for PythonConsole."""
-        from qtpy.QtCore import QPoint
 
         # Create context menu
         menu = self.console.edit.createStandardContextMenu()
 
         # Manually add our custom actions (simulating contextMenuEvent)
         menu.addSeparator()
-        clear_action = menu.addAction("Clear Console")
-        export_action = menu.addAction("Export Session...")
+        menu.addAction("Clear Console")
+        menu.addAction("Export Session...")
 
         # Check actions exist
         actions = [a.text() for a in menu.actions()]
@@ -1868,8 +1867,8 @@ class TestConsole:
 
     def test_event_filter_mouse_button_press(self):
         """Test eventFilter handles MouseButtonPress events."""
-        from qtpy.QtGui import QMouseEvent
         from qtpy.QtCore import QPoint
+        from qtpy.QtGui import QMouseEvent
 
         # Create a left mouse button press event
         event = QMouseEvent(
@@ -1905,8 +1904,8 @@ class TestConsole:
 
     def test_filter_mouse_press_event_left_button(self):
         """Test _filter_mousePressEvent returns False for left button."""
-        from qtpy.QtGui import QMouseEvent
         from qtpy.QtCore import QPoint
+        from qtpy.QtGui import QMouseEvent
 
         # Create a left mouse button press event
         event = QMouseEvent(
@@ -1925,8 +1924,8 @@ class TestConsole:
 
     def test_filter_mouse_press_event_right_button(self):
         """Test _filter_mousePressEvent returns False for right button."""
-        from qtpy.QtGui import QMouseEvent
         from qtpy.QtCore import QPoint
+        from qtpy.QtGui import QMouseEvent
 
         # Create a right mouse button press event
         event = QMouseEvent(
@@ -1945,8 +1944,8 @@ class TestConsole:
 
     def test_filter_mouse_press_event_middle_button(self):
         """Test _filter_mousePressEvent returns True for middle button."""
-        from qtpy.QtGui import QMouseEvent, QClipboard
-        from qtpy.QtCore import QPoint, QMimeData
+        from qtpy.QtCore import QMimeData, QPoint
+        from qtpy.QtGui import QClipboard, QMouseEvent
         from qtpy.QtWidgets import QApplication
 
         # Set up clipboard with selection data
