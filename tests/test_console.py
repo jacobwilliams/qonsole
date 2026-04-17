@@ -1245,8 +1245,8 @@ class TestConsole:
         # Create middle button press event
         try:
             # Try newer API first (Qt 6+)
-            from qtpy.QtGui import QPointingDevice
             from qtpy.QtCore import QPointF
+            from qtpy.QtGui import QPointingDevice
 
             device = QPointingDevice.primaryPointingDevice()
             event = QMouseEvent(
