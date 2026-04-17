@@ -1225,7 +1225,7 @@ class TestConsole:
         """Test middle mouse button paste (X11 selection)."""
         import sys
 
-        from qtpy.QtCore import QMimeData, QPoint
+        from qtpy.QtCore import QMimeData
         from qtpy.QtGui import QMouseEvent
 
         # Skip on non-X11 platforms (macOS, Windows)
