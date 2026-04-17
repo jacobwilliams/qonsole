@@ -1243,13 +1243,32 @@ class TestConsole:
         clipboard.setMimeData(mime_data, QClipboard.Selection)
 
         # Create middle button press event
-        event = QMouseEvent(
-            QEvent.MouseButtonPress,
-            QPoint(10, 10),
-            Qt.MiddleButton,
-            Qt.MiddleButton,
-            Qt.NoModifier,
-        )
+        try:
+            # Try newer API first (Qt 6+)
+            from qtpy.QtGui import QPointingDevice
+            from qtpy.QtCore import QPointF
+
+            device = QPointingDevice.primaryPointingDevice()
+            event = QMouseEvent(
+                QEvent.Type.MouseButtonPress,
+                QPointF(10, 10),
+                QPointF(10, 10),
+                Qt.MouseButton.MiddleButton,
+                Qt.MouseButton.MiddleButton,
+                Qt.KeyboardModifier.NoModifier,
+                device,
+            )
+        except (ImportError, AttributeError):
+            # Fall back to older API (Qt 5)
+            from qtpy.QtCore import QPointF
+
+            event = QMouseEvent(
+                QEvent.Type.MouseButtonPress,
+                QPointF(10, 10),
+                Qt.MouseButton.MiddleButton,
+                Qt.MouseButton.MiddleButton,
+                Qt.KeyboardModifier.NoModifier,
+            )
 
         # Filter the event
         self.console._filter_mousePressEvent(event)
@@ -1786,17 +1805,33 @@ class TestConsole:
 
     def test_input_area_mouse_press_sets_focus(self):
         """Test InputArea.mousePressEvent sets focus."""
-        from qtpy.QtCore import QPoint
+        from qtpy.QtCore import QPointF
         from qtpy.QtGui import QMouseEvent
 
         # Create mouse press event
-        event = QMouseEvent(
-            QEvent.MouseButtonPress,
-            QPoint(10, 10),
-            Qt.LeftButton,
-            Qt.LeftButton,
-            Qt.NoModifier,
-        )
+        try:
+            # Try newer API first (Qt 6+)
+            from qtpy.QtGui import QPointingDevice
+
+            device = QPointingDevice.primaryPointingDevice()
+            event = QMouseEvent(
+                QEvent.Type.MouseButtonPress,
+                QPointF(10, 10),
+                QPointF(10, 10),
+                Qt.MouseButton.LeftButton,
+                Qt.MouseButton.LeftButton,
+                Qt.KeyboardModifier.NoModifier,
+                device,
+            )
+        except (ImportError, AttributeError):
+            # Fall back to older API (Qt 5)
+            event = QMouseEvent(
+                QEvent.Type.MouseButtonPress,
+                QPointF(10, 10),
+                Qt.MouseButton.LeftButton,
+                Qt.MouseButton.LeftButton,
+                Qt.KeyboardModifier.NoModifier,
+            )
 
         # Clear focus first
         self.console.edit.clearFocus()
@@ -1867,17 +1902,33 @@ class TestConsole:
 
     def test_event_filter_mouse_button_press(self):
         """Test eventFilter handles MouseButtonPress events."""
-        from qtpy.QtCore import QPoint
+        from qtpy.QtCore import QPointF
         from qtpy.QtGui import QMouseEvent
 
         # Create a left mouse button press event
-        event = QMouseEvent(
-            QEvent.MouseButtonPress,
-            QPoint(10, 10),
-            Qt.LeftButton,
-            Qt.LeftButton,
-            Qt.NoModifier,
-        )
+        try:
+            # Try newer API first (Qt 6+)
+            from qtpy.QtGui import QPointingDevice
+
+            device = QPointingDevice.primaryPointingDevice()
+            event = QMouseEvent(
+                QEvent.Type.MouseButtonPress,
+                QPointF(10, 10),
+                QPointF(10, 10),
+                Qt.MouseButton.LeftButton,
+                Qt.MouseButton.LeftButton,
+                Qt.KeyboardModifier.NoModifier,
+                device,
+            )
+        except (ImportError, AttributeError):
+            # Fall back to older API (Qt 5)
+            event = QMouseEvent(
+                QEvent.Type.MouseButtonPress,
+                QPointF(10, 10),
+                Qt.MouseButton.LeftButton,
+                Qt.MouseButton.LeftButton,
+                Qt.KeyboardModifier.NoModifier,
+            )
 
         # Call eventFilter - should handle MouseButtonPress
         result = self.console.eventFilter(self.console.edit, event)
