@@ -1351,6 +1351,41 @@ class TestConsole:
 
         self.bot.waitUntil(check_done, timeout=2000)
 
+    def test_try_interrupt_when_not_executing(self):
+        """Test try_interrupt returns False when not executing."""
+        # Ensure not executing
+        assert not self.console.interpreter._executing
+
+        # Call try_interrupt when not executing
+        result = self.console.interpreter.try_interrupt(self.console._thread)
+
+        # Should return False (not interrupted)
+        assert result is False
+
+    def test_try_interrupt_with_none_thread(self):
+        """Test try_interrupt returns False when thread is None."""
+        import time
+
+        # Start execution to set _executing = True
+        self.console.edit.insertPlainText("import time; time.sleep(0.1)")
+        self.hit_enter()
+        time.sleep(0.05)
+
+        # Verify executing
+        assert self.console.interpreter._executing
+
+        # Call with None thread
+        result = self.console.interpreter.try_interrupt(None)
+
+        # Should return False without crashing
+        assert result is False
+
+        # Wait for execution to complete
+        def check_done():
+            assert not self.console._executing()
+
+        self.bot.waitUntil(check_done, timeout=2000)
+
     def test_down_arrow_with_shift(self):
         """Test down arrow with shift modifier for selection."""
         self.console.edit.insertPlainText("line1\nline2\nline3")

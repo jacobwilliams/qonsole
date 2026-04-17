@@ -843,9 +843,8 @@ class BaseConsole(QFrame):
             self.edit.copy()
             return
 
-        # There is a race condition here, we should lock on the value of
-        # executing() to avoid accidentally raising KeyboardInterrupt after
-        # execution has finished. Deal with this later…
+        # Use the interpreter's thread-safe try_interrupt method to avoid
+        # race condition between checking execution state and canceling
         if self._executing():
             self._cancel()
         else:
@@ -1150,7 +1149,7 @@ class PythonConsole(BaseConsole):
     def _cancel(self):
         """Cancel current code execution by injecting KeyboardInterrupt."""
         if self._thread:
-            self._thread.inject_exception(KeyboardInterrupt)
+            self.interpreter.try_interrupt(self._thread)
             # wake up thread in case it is currently waiting on input:
             self.stdin.flush()
 
