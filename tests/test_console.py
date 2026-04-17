@@ -1904,17 +1904,33 @@ class TestConsole:
 
     def test_filter_mouse_press_event_left_button(self):
         """Test _filter_mousePressEvent returns False for left button."""
-        from qtpy.QtCore import QPoint
+        from qtpy.QtCore import QPointF
         from qtpy.QtGui import QMouseEvent
 
         # Create a left mouse button press event
-        event = QMouseEvent(
-            QEvent.MouseButtonPress,
-            QPoint(10, 10),
-            Qt.LeftButton,
-            Qt.LeftButton,
-            Qt.NoModifier,
-        )
+        try:
+            # Try newer API first (Qt 6+)
+            from qtpy.QtGui import QPointingDevice
+
+            device = QPointingDevice.primaryPointingDevice()
+            event = QMouseEvent(
+                QEvent.Type.MouseButtonPress,
+                QPointF(10, 10),
+                QPointF(10, 10),
+                Qt.MouseButton.LeftButton,
+                Qt.MouseButton.LeftButton,
+                Qt.KeyboardModifier.NoModifier,
+                device,
+            )
+        except (ImportError, AttributeError):
+            # Fall back to older API (Qt 5)
+            event = QMouseEvent(
+                QEvent.Type.MouseButtonPress,
+                QPointF(10, 10),
+                Qt.MouseButton.LeftButton,
+                Qt.MouseButton.LeftButton,
+                Qt.KeyboardModifier.NoModifier,
+            )
 
         # Call _filter_mousePressEvent directly
         result = self.console._filter_mousePressEvent(event)
@@ -1924,17 +1940,33 @@ class TestConsole:
 
     def test_filter_mouse_press_event_right_button(self):
         """Test _filter_mousePressEvent returns False for right button."""
-        from qtpy.QtCore import QPoint
+        from qtpy.QtCore import QPointF
         from qtpy.QtGui import QMouseEvent
 
         # Create a right mouse button press event
-        event = QMouseEvent(
-            QEvent.MouseButtonPress,
-            QPoint(10, 10),
-            Qt.RightButton,
-            Qt.RightButton,
-            Qt.NoModifier,
-        )
+        try:
+            # Try newer API first (Qt 6+)
+            from qtpy.QtGui import QPointingDevice
+
+            device = QPointingDevice.primaryPointingDevice()
+            event = QMouseEvent(
+                QEvent.Type.MouseButtonPress,
+                QPointF(10, 10),
+                QPointF(10, 10),
+                Qt.MouseButton.RightButton,
+                Qt.MouseButton.RightButton,
+                Qt.KeyboardModifier.NoModifier,
+                device,
+            )
+        except (ImportError, AttributeError):
+            # Fall back to older API (Qt 5)
+            event = QMouseEvent(
+                QEvent.Type.MouseButtonPress,
+                QPointF(10, 10),
+                Qt.MouseButton.RightButton,
+                Qt.MouseButton.RightButton,
+                Qt.KeyboardModifier.NoModifier,
+            )
 
         # Call _filter_mousePressEvent directly
         result = self.console._filter_mousePressEvent(event)
@@ -1944,7 +1976,7 @@ class TestConsole:
 
     def test_filter_mouse_press_event_middle_button(self):
         """Test _filter_mousePressEvent returns True for middle button."""
-        from qtpy.QtCore import QMimeData, QPoint
+        from qtpy.QtCore import QMimeData, QPointF
         from qtpy.QtGui import QClipboard, QMouseEvent
         from qtpy.QtWidgets import QApplication
 
@@ -1961,13 +1993,29 @@ class TestConsole:
             clipboard.setMimeData(mime_data, QClipboard.Clipboard)
 
         # Create a middle mouse button press event
-        event = QMouseEvent(
-            QEvent.MouseButtonPress,
-            QPoint(10, 10),
-            Qt.MiddleButton,
-            Qt.MiddleButton,
-            Qt.NoModifier,
-        )
+        try:
+            # Try newer API first (Qt 6+)
+            from qtpy.QtGui import QPointingDevice
+
+            device = QPointingDevice.primaryPointingDevice()
+            event = QMouseEvent(
+                QEvent.Type.MouseButtonPress,
+                QPointF(10, 10),
+                QPointF(10, 10),
+                Qt.MouseButton.MiddleButton,
+                Qt.MouseButton.MiddleButton,
+                Qt.KeyboardModifier.NoModifier,
+                device,
+            )
+        except (ImportError, AttributeError):
+            # Fall back to older API (Qt 5)
+            event = QMouseEvent(
+                QEvent.Type.MouseButtonPress,
+                QPointF(10, 10),
+                Qt.MouseButton.MiddleButton,
+                Qt.MouseButton.MiddleButton,
+                Qt.KeyboardModifier.NoModifier,
+            )
 
         # Call _filter_mousePressEvent directly
         result = self.console._filter_mousePressEvent(event)
