@@ -1785,24 +1785,6 @@ class TestConsole:
         thread.exit()
         thread.wait()
 
-    def test_get_completions_old_jedi(self):
-        """Test get_completions with old Jedi API."""
-        # Mock Jedi Interpreter to use old API
-        from unittest.mock import Mock, patch
-
-        old_script = Mock()
-        old_script.complete.side_effect = AttributeError("old jedi")
-
-        completion_mock = Mock()
-        completion_mock.name = "old_completion"
-        old_script.completions.return_value = [completion_mock]
-
-        with patch("qonsole.console.Interpreter", return_value=old_script):
-            completions = self.console.get_completions("test")
-
-        # Should have used old API
-        assert "old_completion" in completions
-
     def test_input_area_mouse_press_sets_focus(self):
         """Test InputArea.mousePressEvent sets focus."""
         from qtpy.QtCore import QPointF

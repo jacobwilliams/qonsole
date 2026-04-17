@@ -1187,11 +1187,7 @@ class PythonConsole(BaseConsole):
         """
         script = Interpreter(line, [self.interpreter.locals])
 
-        try:
-            comps = script.complete()
-        except AttributeError:
-            # Jedi < 0.16.0 named the method differently
-            comps = script.completions()
+        comps = script.complete()
 
         return [comp.name for comp in comps]
 
