@@ -78,11 +78,15 @@ class TestMagicCmds:
 
     def test_whos(self, magic, console):
         """Test %whos displays detailed variable info."""
-        console.interpreter.locals = {"x": 42, "name": "test", "data": [1, 2, 3]}
+        console.interpreter.locals = {
+            "x" * 100: 42,
+            "name": "test" * 40,
+            "data": [1, 2, 3],
+        }
         result = magic._WHOS()
         assert "Variable" in result
         assert "Type" in result
-        assert "x" in result
+        assert "x" * 100 in result
         assert "int" in result
         assert "name" in result
         assert "str" in result
