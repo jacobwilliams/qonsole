@@ -1263,13 +1263,13 @@ class PythonConsole(BaseConsole):
         """Execute code snippets in later mainloop iterations in main thread.
 
         Sets up queued connections to execute code in the main event loop.
-        
+
         WARNING: Code executes in the main Qt thread, blocking the event loop.
         This means:
         - UI will freeze during long-running code
         - Keyboard events (including Ctrl+C) cannot be processed during execution
         - Interruption via Ctrl+C is NOT possible
-        
+
         Use eval_in_thread() instead if you need to interrupt long-running code.
 
         Returns:
