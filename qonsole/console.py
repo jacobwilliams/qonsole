@@ -993,6 +993,47 @@ class BaseConsole(QFrame):
         return ["No completion support available"]
 
 
+class Thread(QThread):
+    """Thread that runs a Qt event loop.
+
+    Exposes the thread ID as the `ident` attribute and allows
+    injecting exceptions to interrupt execution.
+    """
+
+    ident: Optional[int]
+
+    def __init__(self, parent: Optional[QThread] = None) -> None:
+        """Initialize and start the thread.
+
+        Args:
+            parent: Parent QObject. Defaults to None.
+        """
+        super().__init__(parent)
+        self.ready = threading.Event()
+        self.start()
+        self.ready.wait()
+
+    def run(self) -> None:
+        """Run the Qt event dispatcher within the thread."""
+        self.ident = threading.current_thread().ident
+        self.ready.set()
+        self.exec_()
+
+    def inject_exception(self, value: type) -> None:
+        """Raise an exception in the thread to stop execution.
+
+        Injects the exception into the remote thread. The exception is raised
+        once the thread executes any Python bytecode.
+
+        Args:
+            value: Exception class or instance to raise in the thread.
+        """
+        if self.ident != threading.current_thread().ident:
+            ctypes.pythonapi.PyThreadState_SetAsyncExc(
+                ctypes.c_long(self.ident), ctypes.py_object(value)
+            )
+
+
 class PythonConsole(BaseConsole):
     """Interactive Python console widget.
 
@@ -1147,7 +1188,11 @@ class PythonConsole(BaseConsole):
         return self.interpreter.executing()
 
     def _cancel(self):
-        """Cancel current code execution by injecting KeyboardInterrupt."""
+        """Cancel current code execution by injecting KeyboardInterrupt.
+
+        Note: Only works with eval_in_thread(). With eval_queued(), the main
+        thread is blocked and cannot process keyboard events during execution.
+        """
         if self._thread:
             self.interpreter.try_interrupt(self._thread)
             # wake up thread in case it is currently waiting on input:
@@ -1199,7 +1244,7 @@ class PythonConsole(BaseConsole):
         """
         self.interpreter.locals[name] = value
 
-    def eval_in_thread(self) -> "Thread":
+    def eval_in_thread(self) -> Thread:
         """Start a thread in which code snippets will be executed.
 
         Creates and starts an execution thread that runs code in the background.
@@ -1267,47 +1312,6 @@ class PythonConsole(BaseConsole):
             strip_prompts=strip_prompts,
             preamble=self._preamble,
         )
-
-
-class Thread(QThread):
-    """Thread that runs a Qt event loop.
-
-    Exposes the thread ID as the `ident` attribute and allows
-    injecting exceptions to interrupt execution.
-    """
-
-    ident: Optional[int]
-
-    def __init__(self, parent: Optional["QThread"] = None) -> None:
-        """Initialize and start the thread.
-
-        Args:
-            parent: Parent QObject. Defaults to None.
-        """
-        super().__init__(parent)
-        self.ready = threading.Event()
-        self.start()
-        self.ready.wait()
-
-    def run(self) -> None:
-        """Run the Qt event dispatcher within the thread."""
-        self.ident = threading.current_thread().ident
-        self.ready.set()
-        self.exec_()
-
-    def inject_exception(self, value: type) -> None:
-        """Raise an exception in the thread to stop execution.
-
-        Injects the exception into the remote thread. The exception is raised
-        once the thread executes any Python bytecode.
-
-        Args:
-            value: Exception class or instance to raise in the thread.
-        """
-        if self.ident != threading.current_thread().ident:
-            ctypes.pythonapi.PyThreadState_SetAsyncExc(
-                ctypes.c_long(self.ident), ctypes.py_object(value)
-            )
 
 
 class InputArea(QPlainTextEdit):
