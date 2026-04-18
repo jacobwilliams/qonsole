@@ -1248,6 +1248,8 @@ class PythonConsole(BaseConsole):
         """Start a thread in which code snippets will be executed.
 
         Creates and starts an execution thread that runs code in the background.
+        This allows the Qt event loop to continue processing UI events, including
+        keyboard interrupts (Ctrl+C/Cmd+C) during code execution.
 
         Returns:
             Thread object that will execute code snippets.
@@ -1261,6 +1263,14 @@ class PythonConsole(BaseConsole):
         """Execute code snippets in later mainloop iterations in main thread.
 
         Sets up queued connections to execute code in the main event loop.
+        
+        WARNING: Code executes in the main Qt thread, blocking the event loop.
+        This means:
+        - UI will freeze during long-running code
+        - Keyboard events (including Ctrl+C) cannot be processed during execution
+        - Interruption via Ctrl+C is NOT possible
+        
+        Use eval_in_thread() instead if you need to interrupt long-running code.
 
         Returns:
             The signal-slot connection.
