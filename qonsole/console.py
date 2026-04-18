@@ -1087,11 +1087,17 @@ class PythonConsole(BaseConsole):
         self.highlighter = PythonHighlighter(
             self.edit.document(), pygments_style=pygments_style
         )
+        # Store initial locals for restart functionality
+        # Create a dict to track persistent items (initial locals + push_local_ns)
+        self._persistent_locals = dict(locals) if locals else {}
         self.interpreter = PythonInterpreter(self.stdin, self.stdout, locals=locals)
         self.interpreter.done_signal.connect(self._finish_command)
         self.interpreter.exit_signal.connect(self.exit)
         self.interpreter.error_signal.connect(self._error_started)
         self._thread: Optional[Thread] = None
+        # Track execution mode for restart: 'thread', 'queued', 'executor', or None
+        self._exec_mode: Optional[str] = None
+        self._exec_spawn: Optional[Callable] = None
 
         # Apply the background color from the Pygments style
         self.set_pygments_style(pygments_style)
@@ -1215,7 +1221,7 @@ class PythonConsole(BaseConsole):
         Stops execution thread if running and closes the console.
         """
         if self._thread:
-            self._thread.exit()
+            self._thread.quit()
             self._thread.wait()
             self._thread = None
         self._close()
@@ -1238,11 +1244,67 @@ class PythonConsole(BaseConsole):
     def push_local_ns(self, name: str, value: Any) -> None:
         """Set a variable in the interpreter's local namespace.
 
+        Any variables set through this method will be added to the
+        interpreter's locals and will persist across restarts of the
+        interpreter. This allows you to programmatically inject
+        variables or objects into the console environment.
+
         Args:
             name: Variable name string.
             value: Value to assign to the variable.
         """
         self.interpreter.locals[name] = value
+        # Also store in persistent locals so it survives restart
+        self._persistent_locals[name] = value
+
+    def restart_interpreter(self, clear_display: bool = True) -> None:
+        """Restart the interpreter with a fresh namespace.
+
+        Clears all variables, command history, and resets the interpreter
+        to initial state. Optionally clears the console display.
+        Automatically restarts in the same execution mode
+        (threaded, queued, or executor).
+
+        Args:
+            clear_display: If True, clears the console display.
+                Defaults to True.
+        """
+        # Remember execution mode
+        exec_mode = self._exec_mode
+        exec_spawn = self._exec_spawn
+
+        # Disconnect old signals first
+        self.interpreter.done_signal.disconnect(self._finish_command)
+        self.interpreter.exit_signal.disconnect(self.exit)
+        self.interpreter.error_signal.disconnect(self._error_started)
+
+        # If using a thread, stop it before creating new interpreter
+        if self._thread:
+            self._thread.quit()
+            self._thread.wait()
+            self._thread = None
+
+        # Create new interpreter with fresh namespace
+        self.interpreter = PythonInterpreter(
+            self.stdin, self.stdout, locals=self._persistent_locals
+        )
+        self.interpreter.done_signal.connect(self._finish_command)
+        self.interpreter.exit_signal.connect(self.exit)
+        self.interpreter.error_signal.connect(self._error_started)
+
+        # Clear command history
+        self.command_history.clear()
+
+        # Restore execution mode
+        if exec_mode == "thread":
+            self.eval_in_thread()
+        elif exec_mode == "queued":
+            self.eval_queued()
+        elif exec_mode == "executor" and exec_spawn:
+            self.eval_executor(exec_spawn)
+
+        if clear_display:
+            self.clear(show_prompt=True)
 
     def eval_in_thread(self) -> Thread:
         """Start a thread in which code snippets will be executed.
@@ -1254,6 +1316,11 @@ class PythonConsole(BaseConsole):
         Returns:
             Thread object that will execute code snippets.
         """
+        # If already in thread mode, return existing thread
+        if self._exec_mode == "thread" and self._thread is not None:
+            return self._thread
+
+        self._exec_mode = "thread"
         self._thread = Thread()
         self.interpreter.moveToThread(self._thread)
         self.interpreter.exec_signal.connect(self.interpreter.exec_, QueuedConnection)
@@ -1275,6 +1342,7 @@ class PythonConsole(BaseConsole):
         Returns:
             The signal-slot connection.
         """
+        self._exec_mode = "queued"
         return self.interpreter.exec_signal.connect(
             self.interpreter.exec_, QueuedConnection
         )
@@ -1291,6 +1359,8 @@ class PythonConsole(BaseConsole):
         Returns:
             The signal-slot connection.
         """
+        self._exec_mode = "executor"
+        self._exec_spawn = spawn
         return self.interpreter.exec_signal.connect(
             lambda line: spawn(self.interpreter.exec_, line)
         )
@@ -1419,8 +1489,14 @@ class InputArea(QPlainTextEdit):
         clear_action = menu.addAction("Clear Console")
         clear_action.triggered.connect(lambda: self.parent().clear(show_prompt=True))
 
-        # Add Export Session action (only for PythonConsole)
+        # Add Restart Interpreter action (only for PythonConsole)
         console = self.parent()
+        if hasattr(console, "restart_interpreter"):
+            restart_action = menu.addAction("Restart Interpreter")
+            restart_action.setToolTip("Reset namespace and clear all variables")
+            restart_action.triggered.connect(lambda: console.restart_interpreter())
+
+        # Add Export Session action (only for PythonConsole)
         if hasattr(console, "export_as_script"):
             export_action = menu.addAction("Export Session...")
             export_action.triggered.connect(lambda: console.export_as_script())

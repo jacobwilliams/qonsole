@@ -80,6 +80,15 @@ class CommandHistory(QObject):
         else:
             return self._cmd_history[self._idx]
 
+    def clear(self) -> None:
+        """Clear all command history.
+
+        Resets the history to an empty state.
+        """
+        self._cmd_history.clear()
+        self._idx = 0
+        self._pending_input = ""
+
     def _insert_in_editor(self, str_: str) -> None:
         """Replace editor content with the given string.
 
