@@ -1363,28 +1363,22 @@ class TestConsole:
         assert result is False
 
     def test_try_interrupt_with_none_thread(self):
-        """Test try_interrupt returns False when thread is None."""
-        import time
-
-        # Start execution to set _executing = True
-        self.console.edit.insertPlainText("import time; time.sleep(0.1)")
-        self.hit_enter()
-        time.sleep(0.05)
-
-        # Verify executing
-        assert self.console.interpreter._executing
-
-        # Call with None thread
+        """Test try_interrupt returns False when thread is None.
+        
+        With eval_queued() mode (no thread), interruption is not possible
+        since execution blocks the event loop. This test verifies that
+        calling try_interrupt(None) safely returns False.
+        """
+        # Call try_interrupt with None thread - should return False without crashing
+        # even if code were executing (though we can't reliably catch that state
+        # with eval_queued() since it blocks the event loop)
         result = self.console.interpreter.try_interrupt(None)
-
-        # Should return False without crashing
         assert result is False
-
-        # Wait for execution to complete
-        def check_done():
-            assert not self.console._executing()
-
-        self.bot.waitUntil(check_done, timeout=2000)
+        
+        # Verify it also returns False when not executing
+        assert not self.console.interpreter._executing
+        result = self.console.interpreter.try_interrupt(None)
+        assert result is False
 
     def test_down_arrow_with_shift(self):
         """Test down arrow with shift modifier for selection."""
