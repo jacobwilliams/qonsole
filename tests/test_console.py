@@ -1364,7 +1364,7 @@ class TestConsole:
 
     def test_try_interrupt_with_none_thread(self):
         """Test try_interrupt returns False when thread is None.
-        
+
         With eval_queued() mode (no thread), interruption is not possible
         since execution blocks the event loop. This test verifies that
         calling try_interrupt(None) safely returns False.
@@ -1374,7 +1374,7 @@ class TestConsole:
         # with eval_queued() since it blocks the event loop)
         result = self.console.interpreter.try_interrupt(None)
         assert result is False
-        
+
         # Verify it also returns False when not executing
         assert not self.console.interpreter._executing
         result = self.console.interpreter.try_interrupt(None)
