@@ -8162,7 +8162,7 @@ packages:
   timestamp: 1771716967192
 - pypi: ./
   name: qonsole
-  version: 3.2.1
+  version: 3.3.0
   sha256: e31c099b9a5086db8f7b380a32e76476c62124ccad340d52aa9449b506a30920
   requires_dist:
   - qtpy
