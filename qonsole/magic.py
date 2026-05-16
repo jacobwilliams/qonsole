@@ -160,17 +160,19 @@ class MagicCmds:
                 timeit.Timer(args, globals=self.parent.interpreter.locals).timeit(num)
                 / num
             )
+            u = "s"
+            s = 1.0
             for threshold, scale, unit in [
                 (1e-6, 1e9, "ns"),
                 (1e-3, 1e6, "µs"),
                 (1, 1e3, "ms"),
             ]:
                 if per_loop < threshold:
-                    return (
-                        f"{per_loop * scale:.1f} {unit} ± per loop "
-                        f"(mean of {num} runs)\n"
-                    )
-            return f"{per_loop:.3f} s ± per loop (mean of {num} runs)\n"
+                    u = unit
+                    s = scale
+                    break
+            return f"{per_loop * s:.1f} {u} ± per loop (mean of {num} runs)\n"
+
         except Exception as e:
             return f"Error timing code: {str(e)}\n"
 

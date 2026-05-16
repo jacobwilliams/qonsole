@@ -7,6 +7,7 @@ with Qt signals for code execution, completion, and error handling.
 import ast
 import contextlib
 import sys
+import threading
 from code import InteractiveInterpreter
 from functools import partial
 from typing import TYPE_CHECKING, Any, Callable, Optional
@@ -14,6 +15,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional
 from qtpy.QtCore import QObject, Signal, Slot
 
 if TYPE_CHECKING:
+    from .console import Thread
     from .stream import Stream
 
 
@@ -54,6 +56,7 @@ class PythonInterpreter(QObject, InteractiveInterpreter):
         self.stdin = stdin
         self.stdout = stdout
         self._executing: bool = False
+        self._exec_lock: threading.Lock = threading.Lock()
         self.compile: Callable = partial(compile_multi, self.compile)
 
     def executing(self) -> bool:
@@ -82,7 +85,9 @@ class PythonInterpreter(QObject, InteractiveInterpreter):
         Args:
             codes: List of tuples (code, mode) where mode is 'eval' or 'exec'.
         """
-        self._executing = True
+        with self._exec_lock:
+            self._executing = True
+
         result: Any = None
 
         # Redirect IO and disable excepthook, this is the only place were we
@@ -101,7 +106,8 @@ class PythonInterpreter(QObject, InteractiveInterpreter):
         except BaseException:
             self.showtraceback()
         finally:
-            self._executing = False
+            with self._exec_lock:
+                self._executing = False
             self.done_signal.emit(result)
 
     def write(self, data: str) -> None:
@@ -144,6 +150,24 @@ class PythonInterpreter(QObject, InteractiveInterpreter):
             # It seems Python 3.13 requires **kwargs, older versions don't
             InteractiveInterpreter.showsyntaxerror(self, filename, **kwargs)
         self.done_signal.emit(None)
+
+    def try_interrupt(self, thread: Optional["Thread"]) -> bool:
+        """Atomically check if executing and inject KeyboardInterrupt if so.
+
+        This method safely handles the race condition between checking if code
+        is executing and injecting the interrupt exception.
+
+        Args:
+            thread: The Thread object to inject the exception into.
+
+        Returns:
+            True if interrupt was injected, False if not currently executing.
+        """
+        with self._exec_lock:
+            if self._executing and thread is not None:
+                thread.inject_exception(KeyboardInterrupt)
+                return True
+        return False
 
 
 def compile_multi(

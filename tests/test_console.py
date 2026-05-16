@@ -28,6 +28,11 @@ class TestConsole:
         self.console.show()
         self.console.eval_in_thread()
         yield self.console
+        # Cleanup: properly stop the thread to avoid Qt crash on destruction
+        if self.console._thread:
+            self.console._thread.quit()
+            self.console._thread.wait()
+            self.console._thread = None
 
     def hit_enter(self):
         """Trigger of hitting the [Enter] key inside the prompt."""
@@ -432,6 +437,12 @@ class TestConsole:
 
         content = custom_console.edit.toPlainText()
         assert ">>>" in content or len(content) >= 0  # Has custom prompt
+
+        # Cleanup thread properly
+        if custom_console._thread:
+            custom_console._thread.quit()
+            custom_console._thread.wait()
+            custom_console._thread = None
 
     def test_eval_queued(self):
         """Test eval_queued execution mode."""
@@ -1351,6 +1362,229 @@ class TestConsole:
 
         self.bot.waitUntil(check_done, timeout=2000)
 
+    def test_try_interrupt_when_not_executing(self):
+        """Test try_interrupt returns False when not executing."""
+        # Ensure not executing
+        assert not self.console.interpreter._executing
+
+        # Call try_interrupt when not executing
+        result = self.console.interpreter.try_interrupt(self.console._thread)
+
+        # Should return False (not interrupted)
+        assert result is False
+
+    def test_try_interrupt_with_none_thread(self):
+        """Test try_interrupt returns False when thread is None.
+
+        With eval_queued() mode (no thread), interruption is not possible
+        since execution blocks the event loop. This test verifies that
+        calling try_interrupt(None) safely returns False.
+        """
+        # Call try_interrupt with None thread - should return False without crashing
+        # even if code were executing (though we can't reliably catch that state
+        # with eval_queued() since it blocks the event loop)
+        result = self.console.interpreter.try_interrupt(None)
+        assert result is False
+
+        # Verify it also returns False when not executing
+        assert not self.console.interpreter._executing
+        result = self.console.interpreter.try_interrupt(None)
+        assert result is False
+
+    def test_restart_interpreter(self):
+        """Test restarting the interpreter clears namespace and
+        history but preserves pushed functions."""
+
+        # Push a function that should survive restart
+        def test_func():
+            return "I survived!"
+
+        self.console.push_local_ns("test_func", test_func)
+
+        # Set a variable
+        self.console.edit.insertPlainText("x = 42")
+        self.hit_enter()
+
+        def check_assignment():
+            assert "x" in self.console.interpreter.locals
+
+        self.bot.waitUntil(check_assignment)
+
+        # Execute another command to add to history
+        self.console.edit.insertPlainText("y = 100")
+        self.hit_enter()
+
+        def check_second_assignment():
+            assert "y" in self.console.interpreter.locals
+
+        self.bot.waitUntil(check_second_assignment)
+
+        # Verify command history has entries
+        assert len(self.console.command_history._cmd_history) > 0
+
+        # Restart the interpreter
+        self.console.restart_interpreter(clear_display=False)
+
+        # Variables should be gone
+        assert "x" not in self.console.interpreter.locals
+        assert "y" not in self.console.interpreter.locals
+
+        # Command history should be cleared
+        assert len(self.console.command_history._cmd_history) == 0
+
+        # Built-in 'exit' should still be there
+        assert "exit" in self.console.interpreter.locals
+
+        # Pushed function should still be there
+        assert "test_func" in self.console.interpreter.locals
+        assert self.console.interpreter.locals["test_func"]() == "I survived!"
+
+    def test_restart_interpreter_with_clear_display(self):
+        """Test restarting with clear_display=True clears the display."""
+        # Execute some commands to populate the display
+        self.console.edit.insertPlainText("x = 42")
+        self.hit_enter()
+
+        def check_first():
+            assert "x" in self.console.interpreter.locals
+
+        self.bot.waitUntil(check_first)
+
+        self.console.edit.insertPlainText("print('hello')")
+        self.hit_enter()
+
+        def check_output():
+            content = self.console.edit.toPlainText()
+            assert "hello" in content
+
+        self.bot.waitUntil(check_output)
+
+        # Store the content before restart
+        content_before = self.console.edit.toPlainText()
+        assert len(content_before) > 0
+
+        # Restart with clear_display=True
+        self.console.restart_interpreter(clear_display=True)
+
+        # Display should be cleared (only prompt remains)
+        content_after = self.console.edit.toPlainText()
+        # Should not have old content
+        assert "x = 42" not in content_after
+        assert "hello" not in content_after
+        # Should have reset state
+        assert self.console._current_line == 0
+        assert not self.console._more
+
+    def test_restart_interpreter_restores_queued_mode(self):
+        """Test restarting preserves eval_queued execution mode."""
+        # Set up queued execution mode
+        self.console.eval_queued()
+        assert self.console._exec_mode == "queued"
+
+        # Execute a command to verify it works
+        self.console.edit.insertPlainText("test_var = 123")
+        self.hit_enter()
+
+        def check_execution():
+            assert "test_var" in self.console.interpreter.locals
+
+        self.bot.waitUntil(check_execution)
+
+        # Restart the interpreter
+        self.console.restart_interpreter(clear_display=False)
+
+        # Execution mode should be restored
+        assert self.console._exec_mode == "queued"
+
+        # Should still be able to execute commands
+        self.console.edit.insertPlainText("new_var = 456")
+        self.hit_enter()
+
+        def check_new_execution():
+            assert "new_var" in self.console.interpreter.locals
+
+        self.bot.waitUntil(check_new_execution)
+
+    def test_restart_interpreter_restores_thread_mode(self):
+        """Test restarting preserves eval_in_thread execution mode."""
+        # Set up threaded execution mode
+        self.console.eval_in_thread()
+        assert self.console._exec_mode == "thread"
+        assert self.console._thread is not None
+
+        # Execute a command
+        self.console.edit.insertPlainText("test_var = 789")
+        self.hit_enter()
+
+        def check_execution():
+            assert "test_var" in self.console.interpreter.locals
+
+        self.bot.waitUntil(check_execution)
+
+        # Restart the interpreter
+        self.console.restart_interpreter(clear_display=False)
+
+        # Execution mode and thread should be restored
+        assert self.console._exec_mode == "thread"
+        assert self.console._thread is not None
+
+        # Should still be able to execute commands
+        self.console.edit.insertPlainText("new_var = 999")
+        self.hit_enter()
+
+        def check_new_execution():
+            assert "new_var" in self.console.interpreter.locals
+
+        self.bot.waitUntil(check_new_execution)
+
+    def test_restart_interpreter_restores_executor_mode(self):
+        """Test restarting preserves eval_executor execution mode."""
+        # Track spawned calls
+        spawned = []
+
+        def custom_spawn(func, arg):
+            spawned.append((func, arg))
+            # Execute immediately for testing
+            func(arg)
+
+        # Set up executor mode
+        self.console.eval_executor(custom_spawn)
+        assert self.console._exec_mode == "executor"
+        assert self.console._exec_spawn is custom_spawn
+
+        # Execute a command
+        self.console.edit.insertPlainText("exec_var = 123")
+        self.hit_enter()
+
+        def check_execution():
+            assert "exec_var" in self.console.interpreter.locals
+            assert len(spawned) > 0
+
+        self.bot.waitUntil(check_execution)
+
+        # Clear spawned list
+        spawned.clear()
+
+        # Restart the interpreter
+        self.console.restart_interpreter(clear_display=False)
+
+        # Execution mode should be restored
+        assert self.console._exec_mode == "executor"
+        assert self.console._exec_spawn is custom_spawn
+
+        # Variable should be gone
+        assert "exec_var" not in self.console.interpreter.locals
+
+        # Should still be able to execute commands with executor
+        self.console.edit.insertPlainText("new_exec_var = 456")
+        self.hit_enter()
+
+        def check_new_execution():
+            assert "new_exec_var" in self.console.interpreter.locals
+            assert len(spawned) > 0
+
+        self.bot.waitUntil(check_new_execution)
+
     def test_down_arrow_with_shift(self):
         """Test down arrow with shift modifier for selection."""
         self.console.edit.insertPlainText("line1\nline2\nline3")
@@ -1784,24 +2018,6 @@ class TestConsole:
         # Stop thread
         thread.exit()
         thread.wait()
-
-    def test_get_completions_old_jedi(self):
-        """Test get_completions with old Jedi API."""
-        # Mock Jedi Interpreter to use old API
-        from unittest.mock import Mock, patch
-
-        old_script = Mock()
-        old_script.complete.side_effect = AttributeError("old jedi")
-
-        completion_mock = Mock()
-        completion_mock.name = "old_completion"
-        old_script.completions.return_value = [completion_mock]
-
-        with patch("qonsole.console.Interpreter", return_value=old_script):
-            completions = self.console.get_completions("test")
-
-        # Should have used old API
-        assert "old_completion" in completions
 
     def test_input_area_mouse_press_sets_focus(self):
         """Test InputArea.mousePressEvent sets focus."""

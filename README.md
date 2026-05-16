@@ -109,15 +109,6 @@ Which can be used like so:
            3.2.1
 ```
 
-### Clear console
-
-A local method, named `clear()`, is available to clear the input screen and reset the line numbering.
-Enable it by pushing the method into the available namespace in the console:
-
-```python
-   console.interpreter.locals["clear"] = console.clear
-```
-
 ### Shell commands
 
 Commands entered in the console that start with `!` will be executed as shell commands.
@@ -160,5 +151,5 @@ This module depends on [QtPy](https://github.com/spyder-ide/qtpy) which provides
 Qt. The console is tested under both Qt5 and Qt6.
 
 ## Development
- * [Repository at GitHub](https://github.com/jacobwilliams/vibehdf5)
+ * [Repository at GitHub](https://github.com/jacobwilliams/qonsole)
  * To generate coverage information for the unit tests, run `pixi run "coverage run -m pytest tests/ && coverage report -m && coverage html"`

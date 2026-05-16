@@ -59,7 +59,7 @@ if __name__ == "__main__":
     )
     console.push_local_ns("greet", greet)
     console.push_local_ns("style", change_pygments_style)
-    console.interpreter.locals["clear"] = console.clear
+    console.push_local_ns("clear", console.clear)
 
     # add a custom magic command:
     console.add_magic_command("version", version)

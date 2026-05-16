@@ -108,3 +108,22 @@ class TestCommandHistory:
         # Should return cmd2
         result = history.current()
         assert result == "cmd2"
+
+    def test_clear(self, history):
+        """Test clear() resets history to empty state."""
+        # Add some commands
+        history.add("cmd1")
+        history.add("cmd2")
+        history.add("cmd3")
+
+        # Navigate and set pending input
+        history.dec("pending")
+        history._pending_input = "pending"
+
+        # Clear the history
+        history.clear()
+
+        # Verify everything is reset
+        assert len(history._cmd_history) == 0
+        assert history._idx == 0
+        assert history._pending_input == ""
